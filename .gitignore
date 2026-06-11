@@ -23,6 +23,10 @@ output/
 *.log
 *.log.*
 
+# Documentação e artefatos internos de planejamento
+.planning/
+docs/*.html
+
 # Configurações locais e segredos
 config.ini
 *.ini
