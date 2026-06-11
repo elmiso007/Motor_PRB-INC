@@ -1,0 +1,26 @@
+{
+  "source_path": "C:\\Users\\emerson.ramos\\Desktop\\projetos\\Motor PRB-INC\\docs\\APRESENTACAO.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Motor Prescritivo PRB",
+  "summary": "Apresentação executiva (slides) do Motor Prescritivo PRB cobrindo problema, solução, arquitetura, resultados em produção e próximos passos.",
+  "scope": [
+    "Motor Prescritivo PRB",
+    "Agrupamento semântico de INCs",
+    "Matriz P1-P5",
+    "Saúde do Cliente",
+    "Integração Slack/Dashboard/Postgres",
+    "ValidadorEntrega V2/V3",
+    "Resultados operacionais 2026-06-02"
+  ],
+  "cross_refs": [
+    "docs/ARQUITETURA.md",
+    "docs/MANUAL.md",
+    "docs/REGRAS.md",
+    "GLOSSARIO.md"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

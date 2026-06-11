@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motor Prescritivo PRB — Apresentação Executiva</title>
+    <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+* { box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.5;
+    color: #222;
+    margin: 0;
+    padding: 0;
+    background: #f5f5f7;
+}
+
+/* Slide em A4 retrato — imprime corretamente em qualquer navegador
+   sem precisar mudar Layout/Orientação no diálogo de impressão. */
+.slide {
+    background: white;
+    width: 21cm;
+    min-height: 29.4cm;
+    margin: 1.5cm auto;
+    padding: 2cm 2.2cm;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    border-radius: 8px;
+    page-break-after: always;
+    overflow: hidden;
+}
+
+.slide:last-child { page-break-after: auto; }
+
+h1 {
+    color: #1a3a52;
+    border-bottom: 4px solid #ff6b35;
+    padding-bottom: 0.4em;
+    font-size: 1.7em;
+    margin-top: 0;
+    margin-bottom: 0.8em;
+}
+
+h2 {
+    color: #1a3a52;
+    font-size: 1.35em;
+    margin-top: 0;
+    margin-bottom: 0.4em;
+}
+
+h3 {
+    color: #555;
+    font-size: 1.05em;
+    font-weight: 500;
+    margin-top: 0;
+}
+
+p { margin: 0.5em 0; font-size: 0.95em; }
+
+ul, ol { padding-left: 1.5em; font-size: 0.95em; }
+
+li { margin: 0.25em 0; }
+
+strong { color: #1a3a52; }
+
+em { color: #555; }
+
+code {
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    background: #f0f2f5;
+    padding: 0.1em 0.4em;
+    border-radius: 3px;
+    font-size: 0.88em;
+    color: #c0392b;
+}
+
+pre {
+    background: #2d3748;
+    color: #e2e8f0;
+    padding: 0.9em 1.1em;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 0.72em;
+    line-height: 1.45;
+    margin: 0.7em 0;
+}
+
+pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    font-size: inherit;
+}
+
+table {
+    border-collapse: collapse;
+    margin: 0.7em 0;
+    width: 100%;
+    font-size: 0.85em;
+}
+
+table th, table td {
+    border: 1px solid #ddd;
+    padding: 0.45em 0.7em;
+    text-align: left;
+    vertical-align: top;
+}
+
+table th {
+    background: #1a3a52;
+    color: white;
+    font-weight: 600;
+}
+
+table tr:nth-child(even) { background: #fafafa; }
+
+blockquote {
+    border-left: 4px solid #ff6b35;
+    margin: 0.7em 0;
+    padding: 0.4em 1em;
+    background: #fff8f5;
+    font-style: italic;
+    color: #555;
+    font-size: 0.95em;
+}
+
+hr { display: none; }
+
+/* Capa especial — também em A4 retrato */
+.slide-capa {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: linear-gradient(135deg, #1a3a52 0%, #2c5478 100%);
+    color: white;
+    padding: 4cm 2cm;
+}
+
+.slide-capa h1 {
+    color: white;
+    border-bottom: 4px solid #ff6b35;
+    font-size: 2.6em;
+    line-height: 1.2;
+    margin-bottom: 0.6em;
+}
+
+.slide-capa h3 {
+    color: #cce0f0;
+    font-size: 1.3em;
+    font-weight: 400;
+    margin-top: 0.5em;
+    margin-bottom: 2em;
+}
+
+.slide-capa p {
+    color: #cce0f0;
+    font-size: 1.1em;
+}
+
+.slide-capa strong { color: white; }
+
+/* Print: 1 slide por página A4 retrato (orientação default do navegador) */
+@media print {
+    body { background: white; }
+    .slide {
+        margin: 0;
+        box-shadow: none;
+        border-radius: 0;
+        width: 100%;
+        min-height: 100vh;
+        padding: 1.5cm 1.8cm;
+    }
+}
+
+@page {
+    size: A4;
+    margin: 0;
+}
+</style>
+</head>
+<body>
+<div class="slide slide-capa">
+<h1>Motor Prescritivo PRB</h1>
+<h3>Antecipação de problemas via análise semântica de incidentes</h3>
+<p><strong>Apresentação executiva</strong> · Maio/2026</p>
+<p><strong>Audiência:</strong> Jéssica, Victor, Bruno + Coordenação</p>
+</div>
+<div class="slide">
+<h2>O problema (antes do motor)</h2>
+<p><strong>Cenário operacional típico:</strong></p>
+<ul>
+<li>Analista A pega INC: "VPS-01 não pinga" → reinicia → fecha em 30 min.</li>
+<li>8h depois, Analista B (plantão noite): mesma INC, mesmo servidor → reinicia → fecha.</li>
+<li>36h depois, Analista C: idem.</li>
+<li><strong>Sábado, madrugada:</strong> servidor cai de vez. Crise P1.</li>
+</ul>
+<p><strong>Cada analista tratou um evento isolado.</strong> Ninguém viu o padrão.</p>
+<p><strong>Custo:</strong></p>
+<ul>
+<li>🔥 Crise inevitável.</li>
+<li>⏰ Tempo desperdiçado em ações repetitivas.</li>
+<li>📉 Cliente impactado várias vezes antes da resolução real.</li>
+</ul>
+</div>
+<div class="slide">
+<h2>A solução em 1 minuto</h2>
+<p>A cada <strong>15 minutos</strong>, o motor:</p>
+<ol>
+<li>📥 Lê todas as INCs/chamados das últimas 24h (Postgres).</li>
+<li>🧩 <strong>Agrupa por similaridade semântica</strong> — INCs do "mesmo assunto" viram um cluster.</li>
+<li>📊 Calcula <strong>scores</strong> (criticidade, ineficiência do time).</li>
+<li>⚖️ Aplica a <strong>matriz oficial P1-P5</strong> automaticamente.</li>
+<li>💡 <strong>Sugere ação:</strong> abrir PRB / repriorizar PRB existente / monitorar.</li>
+<li>🌡️ <strong>Avalia saúde dos clientes recorrentes</strong> (≥3 INCs em 6 meses).</li>
+<li>📤 Notifica: <strong>Slack</strong> (críticos) + <strong>Dashboard</strong> (todos) + <strong>Postgres</strong> (histórico).</li>
+</ul>
+<p><strong>Resultado operacional:</strong> plantão recebe alerta proativo <strong>antes</strong> do problema escalar.</p>
+</div>
+<div class="slide">
+<h2>Como funciona — visão geral</h2>
+<pre><code>┌──────────────────────────────────────────────────────┐
+│  POSTGRES (lwsa.* + dynamics.* + kinghost.*)         │
+└──────────────────────┬───────────────────────────────┘
+                       ↓ (a cada 15 min)
+┌──────────────────────────────────────────────────────┐
+│  MOTOR PRB-INC                                       │
+│                                                      │
+│  ① Lê INCs + chamados + PRBs                         │
+│  ② Agrupa INCs similares (NLP)                       │
+│  ③ Calcula scores                                    │
+│  ④ Aplica matriz P1-P5                               │
+│  ⑤ Avalia Saúde do Cliente                           │
+│                                                      │
+└────────┬──────────────┬──────────────┬───────────────┘
+         ↓              ↓              ↓
+    ┌────────┐    ┌──────────┐    ┌─────────┐
+    │ Slack  │    │Dashboard │    │Postgres │
+    │(crítico)│   │  (JSON)  │    │(histórico)│
+    └────────┘    └──────────┘    └─────────┘</code></pre>
+</div>
+<div class="slide">
+<h2>Requisitos atendidos</h2>
+<p>Levantados na reunião original:</p>
+<table>
+<thead><tr>
+<th>Requisito</th>
+<th>Quem pediu</th>
+<th>Status</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Agrupar INCs por similaridade (não só por texto literal)</td>
+<td>Jéssica</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Detectar <strong>mesmo CI</strong> gerando INCs repetidas em dias diferentes</td>
+<td>Victor</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Sugerir repriorização</strong> de PRB existente (ex.: P3 → P2)</td>
+<td>Jéssica</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Cruzar com <strong>volume de chamados</strong> Locaweb + Kinghost</td>
+<td>Jéssica</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Saúde do Cliente</strong> — clientes com ≥3 INCs em 6 meses</td>
+<td>Emerson/Bruno</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Slack para crítico + Dashboard tabulado</td>
+<td>Reunião</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Antecipar com <strong>5 INCs P3 idênticas</strong></td>
+<td>Reunião</td>
+<td>✅ Gatilho proativo</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Todos os 7 requisitos do levantamento original implementados.</strong></p>
+</div>
+<div class="slide">
+<h2>Exemplo concreto — Alerta crítico</h2>
+<p><strong>O que o time recebe no Slack quando o motor detecta crise:</strong></p>
+<pre><code>🚨🆘 *Motor Prescritivo PRB — Alerta CRITICA*
+_Ação sugerida: *ABRIR_PRB* | Prioridade: *P1*_
+
+*Cluster:* checkout indisponivel contratacao
+*Produto:* CAL
+*Servidor/CI:* cal-frontend-03.locaweb.local
+*INCs no cluster:* 3
+*Score Criticidade:* 0.66 | *Ineficiência:* 0.38
+*Chamados (24h, produto):* 16
+*CIs recorrentes (15d):* cal-frontend-03.locaweb.local
+
+*Justificativas:*
+    • Contratação indisponível, sem solução de contorno total (P1).
+    • CI(s) com recorrência em 15 dias: cal-frontend-03.locaweb.local.
+    • 16 chamados no último dia para o produto CAL (impacto real).</code></pre>
+<p><strong>🆘 = abrir PRB novo. 🔧 = repriorizar PRB existente.</strong> Identificação visual em 1 segundo.</p>
+</div>
+<div class="slide">
+<h2>Saúde do Cliente — antes vs. depois</h2>
+<h3>Antes (manual)</h3>
+<p>Cliente liga no plantão noturno. Analista precisa:</p>
+<ol>
+<li>Abrir ServiceNow, buscar INCs do cliente, exportar histórico (~5 min).</li>
+<li>Abrir Dynamics, buscar chamados, exportar (~5 min).</li>
+<li>Intercalar manualmente por data num Excel (~5 min).</li>
+</ul>
+<p><strong>Total: 10-15 min de garimpagem por cliente.</strong></p>
+<h3>Depois (motor)</h3>
+<p>Coordenador abre dashboard. Card do cliente já mostra:</p>
+<pre><code>🌡️ cliente005 — RECORRÊNCIA ALTA
+22 INCs em 6 meses · 18 chamados · Severidade 0.48
+
+🟢 INC1000050  ServiceNow   2h atrás · P3
+💬 CAS-500023  Locaweb      3h atrás
+🟢 INC1000047  ServiceNow   8h atrás · P3
+💬 CAS-500012  Kinghost     2 dias atrás
+🟢 INC0900150  ServiceNow   1 mês atrás · P2
+                                            [...]</code></pre>
+<p><strong>Tempo: 5 segundos.</strong></p>
+</div>
+<div class="slide">
+<h2>Onde os dados vivem — 3 saídas em paralelo</h2>
+<table>
+<thead><tr>
+<th>Saída</th>
+<th>Quem consome</th>
+<th>Latência</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>Slack</strong></td>
+<td>Plantão (push de crítico)</td>
+<td>Instantâneo</td>
+</tr>
+<tr>
+<td><strong>Dashboard JSON</strong></td>
+<td>Coordenadores (front-end visual)</td>
+<td>A cada 15 min</td>
+</tr>
+<tr>
+<td><strong>Postgres</strong></td>
+<td>PO/Liderança (análise histórica via SQL)</td>
+<td>A cada 15 min</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Por que 3 saídas:</strong></p>
+<ul>
+<li>Cada audiência tem necessidade diferente.</li>
+<li>Se Slack cair, dashboard ainda existe.</li>
+<li>Se banco cair, JSON ainda existe.</li>
+<li><strong>Resiliência</strong> garantida.</li>
+</ul>
+</div>
+<div class="slide">
+<h2>Análises possíveis pelo histórico Postgres</h2>
+<p>Queries SQL ricas habilitadas pelo histórico de 30 dias:</p>
+<p><strong>📈 Tendência semanal:</strong></p>
+<blockquote>"Quantos alertas críticos por dia na última semana?"</blockquote>
+<p><strong>👥 Clientes piorando:</strong></p>
+<blockquote>"Quais clientes tiveram severidade média subindo nos últimos 30 dias?"</blockquote>
+<p><strong>🖥️ CIs crônicos:</strong></p>
+<blockquote>"Quais servidores aparecem em mais de 50 ciclos do motor (recorrência sistêmica)?"</blockquote>
+<p><strong>⏱️ Saúde do motor:</strong></p>
+<blockquote>"Tempo médio de cada ciclo nas últimas 24h? Algum pico?"</blockquote>
+<p><strong>Sem o motor:</strong> essas perguntas exigiriam horas de análise manual.</p>
+</div>
+<div class="slide">
+<h2>Resultados do MVP (mock de validação)</h2>
+<p><strong>Dataset sintético com 91 INCs simuladas:</strong></p>
+<table>
+<thead><tr>
+<th>Métrica</th>
+<th>Valor</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>INCs processadas</td>
+<td>91 em 4,5 segundos</td>
+</tr>
+<tr>
+<td>Clusters identificados</td>
+<td>5 (todos com tema coerente)</td>
+</tr>
+<tr>
+<td>Prescrições geradas</td>
+<td>5 (1 crítica, 2 altas, 1 média)</td>
+</tr>
+<tr>
+<td>Clientes em recorrência alta</td>
+<td>13</td>
+</tr>
+<tr>
+<td>CIs recorrentes detectados</td>
+<td>4 servidores</td>
+</tr>
+<tr>
+<td>Erros</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Validação técnica:</strong></p>
+<ul>
+<li>✅ <strong>54 testes automatizados</strong> passando (cobertura de regras, scores, parsers).</li>
+<li>✅ <strong>Bug de regressão protegido</strong> (caso "ra" / "fora" não pode voltar).</li>
+<li>✅ <strong>Persistência funcional</strong> em Postgres + JSON paralelo.</li>
+</ul>
+</div>
+<div class="slide">
+<h2>Decisões de produto preservadas</h2>
+<p>O que o motor <strong>NÃO faz</strong> — por princípio:</p>
+<table>
+<thead><tr>
+<th>O que NÃO faz</th>
+<th>Por quê</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Abrir PRB automaticamente no SNow</td>
+<td>Motor <strong>sugere</strong>, humano decide</td>
+</tr>
+<tr>
+<td>Repriorizar PRB sem aprovação humana</td>
+<td>Princípio de segurança operacional</td>
+</tr>
+<tr>
+<td>Rebaixar prioridade automaticamente</td>
+<td>Conservadorismo — só sugere upgrade</td>
+</tr>
+<tr>
+<td>Decidir P5 sozinho</td>
+<td>P5 exige confirmação de Coordenador/PO</td>
+</tr>
+<tr>
+<td>Aprender por feedback (ML)</td>
+<td>Regras determinísticas auditáveis > caixa-preta</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Auditabilidade é prioridade.</strong> Toda decisão automatizada explica-se em texto livre (justificativas no Slack/dashboard).</p>
+</div>
+<div class="slide">
+<h2>O que falta para subir em produção</h2>
+<p>Pendências <strong>não-técnicas</strong> (apenas configuração):</p>
+<ul>
+<li>[ ] <strong>Webhook Slack</strong> real (env <code>SLACK_WEBHOOK_URL</code>).</li>
+<li>[ ] <strong>Canal Slack</strong> criado (sugestão: <code>#prb-alertas</code> ou <code>#noc-alertas</code>).</li>
+<li>[ ] <strong>Conta de banco</strong> com <code>SELECT</code> nos schemas relevantes + <code>INSERT</code> em <code>lwsa.motor_*</code>.</li>
+<li>[ ] <strong>Supervisor</strong> (systemd/Docker) para restart automático.</li>
+<li>[ ] <strong>Monitoração externa</strong> (Site24x7) com query "motor está vivo?".</li>
+</ul>
+<p><strong>Pendências técnicas:</strong> zero. Código validado e pronto.</p>
+</div>
+<div class="slide">
+<h2>Próximos passos sugeridos</h2>
+<h3>Curto prazo (0–4 semanas)</h3>
+<ol>
+<li><strong>Deploy em staging:</strong> apontar para banco real, validar dados reais por 1 semana.</li>
+<li><strong>Calibrar <code>DBSCAN_EPS</code></strong> se clusters não fizerem sentido com volume real.</li>
+<li><strong>Habilitar Slack</strong> após validação no dashboard.</li>
+</ul>
+<h3>Médio prazo (1–3 meses)</h3>
+<ol>
+<li><strong>Front-end visual</strong> consumindo o JSON/Postgres (dashboard de coordenadores).</li>
+<li><strong>Monitoração externa</strong> integrada.</li>
+<li><strong>Cleanup TTL automático</strong> após DBA conceder permissão DELETE.</li>
+</ul>
+<h3>Longo prazo (3+ meses)</h3>
+<ol>
+<li><strong>Análise de tendência</strong> (motor stateful — comparar ciclos).</li>
+<li><strong>Integração bidirecional com SNow</strong> (escrever PRBs) — somente após validação extensa.</li>
+</ul>
+</div>
+<div class="slide">
+<h2>Métricas de sucesso propostas</h2>
+<p>Para acompanhar o ROI do motor após 30 dias em produção:</p>
+<table>
+<thead><tr>
+<th>Métrica</th>
+<th>Como medir</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>Antecipação de PRBs</strong></td>
+<td>Quantos PRBs foram abertos via sugestão proativa (5+ P3 idênticas)?</td>
+</tr>
+<tr>
+<td><strong>Repriorização correta</strong></td>
+<td>Quantos PRBs subiram de P3 para P2 via sugestão do motor?</td>
+</tr>
+<tr>
+<td><strong>Redução de garimpagem</strong></td>
+<td>Tempo médio de plantão por incidente complexo (antes vs. depois)</td>
+</tr>
+<tr>
+<td><strong>Saúde do Cliente</strong></td>
+<td>Clientes com recorrência alta identificados / total de alertas P1 mensais</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Hipótese a validar:</strong> motor identifica 60-80% das crises antes delas virarem P1, ganhando 24-72h de antecedência.</p>
+</div>
+<div class="slide">
+<h2>Resumo executivo</h2>
+<p><strong>O que entregamos:</strong></p>
+<ul>
+<li>✅ MVP funcional rodando localmente.</li>
+<li>✅ Atende <strong>todos os 7 requisitos</strong> do levantamento original.</li>
+<li>✅ Lógica de negócio <strong>auditável</strong> (matriz P1-P5 + justificativas textuais).</li>
+<li>✅ <strong>Resiliente</strong> (defesa em 4 camadas, motor sempre funciona).</li>
+<li>✅ <strong>Documentado</strong> (3 docs separadas para 3 audiências + glossário).</li>
+<li>✅ <strong>Testado</strong> (54 testes automatizados, regressão protegida).</li>
+<li>✅ Compatível com infra atual (Postgres 9.2/9.3, sem upgrade necessário).</li>
+</ul>
+<p><strong>Próximo passo concreto:</strong> decisão sobre subir staging.</p>
+</div>
+<div class="slide">
+<h2>Perguntas / discussão</h2>
+<p><strong>Pontos para alinhar:</strong></p>
+<ol>
+<li><strong>Calibração:</strong> os thresholds atuais (P2 = 5 sem contorno, gatilho = 5 P3, etc.) batem com a realidade operacional?</li>
+</ul>
+<ol>
+<li><strong>Canal Slack:</strong> time prefere alertas individuais (atual) ou consolidados num resumo de 15 min?</li>
+</ul>
+<ol>
+<li><strong>Cleanup TTL:</strong> vale solicitar GRANT DELETE para a conta do motor ou DBA cuida manualmente?</li>
+</ul>
+<ol>
+<li><strong>Próxima fase:</strong> front-end visual ou expansão das regras P1-P5?</li>
+</ul>
+<ol>
+<li><strong>Métricas de sucesso:</strong> quais critérios para considerar o motor "validado"?</li>
+</ul>
+</div>
+<div class="slide">
+<h2>Obrigado</h2>
+<p><strong>Motor Prescritivo PRB</strong> · Emerson Ramos · Maio/2026</p>
+<p><strong>Para detalhes técnicos:</strong></p>
+<ul>
+<li><code>docs/ARQUITETURA.md</code> — como o motor foi construído</li>
+<li><code>docs/MANUAL.md</code> — como usar</li>
+<li><code>docs/REGRAS.md</code> — matriz oficial P1-P5</li>
+<li><code>GLOSSARIO.md</code> — termos técnicos</li>
+</ul>
+<p><strong>Código:</strong> <code>Motor PRB-INC/</code> (12 módulos Python, 3.205 linhas)</p>
+<p><strong>Testes:</strong> <code>python -m pytest tests/</code> (54 testes, 0.13s)</p>
+</div>
+</body>
+</html>

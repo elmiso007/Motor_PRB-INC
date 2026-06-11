@@ -1,0 +1,29 @@
+# Motor Prescritivo PRB — dependências mínimas
+# Instalar com: pip install -r requirements.txt
+
+# Cliente PostgreSQL (data warehouse lwsa + persistência motor_*)
+psycopg2-binary>=2.9.0
+
+# Clusterização semântica (TF-IDF + DBSCAN)
+scikit-learn>=1.3.0
+
+# Cliente HTTP para ServiceNow / Slack (webhook legado)
+requests>=2.31.0
+
+# Cliente Slack Bot Token API (chat.postMessage, igual locapredict)
+slack_sdk>=3.0.0
+
+# Scheduler leve (alternativa: APScheduler ou cron do sistema)
+schedule>=1.2.0
+
+# Tabulação para o dashboard (opcional — usado em notifier.montar_dataframes_dashboard)
+pandas>=2.0.0
+
+# Dados de timezone para zoneinfo no Windows (Linux geralmente já tem via tzdata do SO)
+tzdata>=2024.1
+
+# Testes unitários (apenas em desenvolvimento — não obrigatório em runtime)
+pytest>=8.0.0
+
+# Cliente Dynamics (OAuth + OData) — produção, opcional para o MVP com mocks
+# msal>=1.26.0

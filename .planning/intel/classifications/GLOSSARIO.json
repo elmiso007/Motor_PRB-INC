@@ -1,0 +1,38 @@
+{
+  "source_path": "C:\\Users\\emerson.ramos\\Desktop\\projetos\\Motor PRB-INC\\GLOSSARIO.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Glossário — Motor Prescritivo PRB",
+  "summary": "Glossário de referência de termos ITSM/ITIL, ferramentas, conceitos do Motor PRB-INC, ML/NLP e itens Locaweb-específicos, mais decisões e trade-offs.",
+  "scope": [
+    "ITSM/ITIL",
+    "ServiceNow",
+    "Dynamics 365",
+    "Motor PRB-INC",
+    "ValidadorEntrega",
+    "Saúde do Cliente",
+    "TF-IDF/DBSCAN",
+    "Locaweb",
+    "Postgres json/jsonb",
+    "convenções de código"
+  ],
+  "cross_refs": [
+    "docs/VALIDADOR_ENTREGA.md",
+    "docs/VALIDADOR_ENTREGA.md#8-δ-chamados-vinculados-v3",
+    "MRP para PRB/locapredict",
+    "MRP para PRB/locapredict/guardiao_saude_cliente.py",
+    "config.py",
+    "rules_engine.py",
+    "validador_entrega.py",
+    "validar_entregas.py",
+    "customer_monitor.py",
+    "notifier_db.py",
+    "sql/motor_tables.sql",
+    "output/dashboard_state.json",
+    "main.py"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

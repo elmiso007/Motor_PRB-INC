@@ -1,0 +1,33 @@
+{
+  "source_path": "C:\\Users\\emerson.ramos\\Desktop\\projetos\\Motor PRB-INC\\docs\\ARQUITETURA.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Arquitetura - Motor Prescritivo PRB",
+  "summary": "Documento tecnico de arquitetura do Motor PRB-INC explicando camadas, modulos, fluxo de dados, principios e decisoes de design para desenvolvedores e mantenedores.",
+  "scope": [
+    "Motor Prescritivo PRB",
+    "arquitetura em camadas",
+    "fluxo de dados end-to-end",
+    "modulos (extractor, analyzer, rules_engine, customer_monitor, validador_entrega, notifier, notifier_db, scheduler)",
+    "Saude do Cliente",
+    "ValidadorEntrega V3",
+    "persistencia Postgres",
+    "integracao Slack",
+    "clusterizacao TF-IDF + DBSCAN",
+    "principios transversais (defesa em camadas, SRP, configurabilidade, UTC, justificativa auditavel, ExecucaoMotor, degradacao suave)"
+  ],
+  "cross_refs": [
+    "MANUAL.md",
+    "REGRAS.md",
+    "../GLOSSARIO.md",
+    "SAUDE_DO_CLIENTE.md",
+    "VALIDADOR_ENTREGA.md",
+    "sql/motor_tables.sql",
+    "config.py",
+    "tests/"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

@@ -1,0 +1,37 @@
+{
+  "source_path": "C:\\Users\\emerson.ramos\\Desktop\\projetos\\Motor PRB-INC\\docs\\VALIDADOR_ENTREGA.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "ValidadorEntrega — Processo Completo (V3.1)",
+  "summary": "Documentação operacional ponta a ponta do módulo ValidadorEntrega (prisma retrospectivo do Motor PRB-INC), explicando os 5 sinais, veredictos, cadência e como interpretar/ajustar.",
+  "scope": [
+    "ValidadorEntrega",
+    "Motor PRB-INC",
+    "validador_entrega.py",
+    "validar_entregas.py",
+    "Motor-PRB-Validador.bat",
+    "lwsa.motor_validacao_entrega",
+    "lwsa.motor_validacao_entrega_equipe",
+    "veredicto REINCIDENCIA/ENTREGA_VALIDADA/INCONCLUSIVO",
+    "Delta chamados vinculados",
+    "Times impactados",
+    "PRBs novos pos-resolucao",
+    "Slack alerts",
+    "Task Scheduler agendamento"
+  ],
+  "cross_refs": [
+    "docs/ARQUITETURA.md",
+    "docs/REGRAS.md",
+    "GLOSSARIO.md",
+    "docs/MANUAL.md",
+    "validador_entrega.py",
+    "validar_entregas.py",
+    "Motor-PRB-Validador.bat",
+    "config.py",
+    "sql/motor_tables.sql"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

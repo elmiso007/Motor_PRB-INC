@@ -1,0 +1,31 @@
+{
+  "source_path": "C:\\Users\\emerson.ramos\\Desktop\\projetos\\Motor PRB-INC\\docs\\SAUDE_DO_CLIENTE.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Saúde do Cliente — Processo Completo",
+  "summary": "Documentação end-to-end do módulo Saúde do Cliente do Motor PRB-INC: como identifica clientes com recorrência alta de incidentes e consolida histórico SNow+Dynamics.",
+  "scope": [
+    "Motor PRB-INC",
+    "módulo customer_monitor.py",
+    "tabela lwsa.motor_saude_cliente",
+    "alerta_recorrencia_alta",
+    "ServiceNow incidentes",
+    "Dynamics chamados",
+    "dashboard_state.json",
+    "integração Slack",
+    "login canônico/efetivo"
+  ],
+  "cross_refs": [
+    "ARQUITETURA.md",
+    "REGRAS.md",
+    "../GLOSSARIO.md",
+    "../customer_monitor.py",
+    "../config.py",
+    "MANUAL.md",
+    "REGRAS.md#9-saúde-do-cliente"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

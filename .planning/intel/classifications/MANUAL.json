@@ -1,0 +1,33 @@
+{
+  "source_path": "C:\\Users\\emerson.ramos\\Desktop\\projetos\\Motor PRB-INC\\docs\\MANUAL.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Manual de Uso — Motor Prescritivo PRB",
+  "summary": "Operational manual for the Motor Prescritivo PRB: setup, execution, env vars, log reading, dashboard JSON, Slack messages, SQL queries, tests, troubleshooting and production deploy checklist.",
+  "scope": [
+    "Motor Prescritivo PRB",
+    "setup inicial",
+    "execução do motor",
+    "variáveis de ambiente",
+    "Windows Task Scheduler",
+    "ValidadorEntrega",
+    "logs",
+    "dashboard JSON",
+    "alertas Slack",
+    "queries SQL",
+    "testes unitários",
+    "troubleshooting",
+    "checklist de deploy"
+  ],
+  "cross_refs": [
+    "ARQUITETURA.md",
+    "REGRAS.md",
+    "../GLOSSARIO.md",
+    "sql/motor_tables.sql",
+    "config.py"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

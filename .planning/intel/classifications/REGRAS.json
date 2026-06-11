@@ -1,0 +1,39 @@
+{
+  "source_path": "C:\\Users\\emerson.ramos\\Desktop\\projetos\\Motor PRB-INC\\docs\\REGRAS.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "Regras de Negócio — Motor Prescritivo PRB",
+  "summary": "Especificação completa das regras de negócio do Motor Prescritivo PRB: matriz P1-P5, gatilhos proativos, saúde do cliente, clusterização, filtros e ValidadorEntrega.",
+  "scope": [
+    "Matriz de priorização P1-P5",
+    "Critérios P1 (Crise)",
+    "Critérios P2 (Alta)",
+    "Critérios P3 (Média)",
+    "Critérios P4 (Baixa)",
+    "Critérios P5 (Planejado)",
+    "Gatilho proativo 5 P3",
+    "Sugestão de repriorização de PRB",
+    "Saúde do Cliente",
+    "Termos heurísticos (TERMOS_RECLAME_AQUI, TERMOS_CONTRATACAO, etc.)",
+    "Clusterização TF-IDF + DBSCAN",
+    "Fusão por (produto, servidor)",
+    "Filtros de organização e login",
+    "ValidadorEntrega (prisma retrospectivo)",
+    "Thresholds em config.py",
+    "rules_engine.py"
+  ],
+  "cross_refs": [
+    "ARQUITETURA.md",
+    "MANUAL.md",
+    "../GLOSSARIO.md",
+    "SAUDE_DO_CLIENTE.md",
+    "VALIDADOR_ENTREGA.md",
+    "config.py",
+    "rules_engine.py",
+    "tests/test_rules_engine.py"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": "Documento normativo/técnico: define critérios determinísticos, thresholds nomeados (LIMIAR_*), pseudocódigo de cascata, tabelas de mapeamento veredicto→ação. Classificado como SPEC por descrever o contrato de implementação que o motor deve honrar (regras, fórmulas, mapeamentos), não como ADR (não há seção Decision/Consequences única) nem PRD (não usa linguagem de user stories/acceptance criteria de produto)."
+}
