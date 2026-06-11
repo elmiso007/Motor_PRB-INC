@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+ENV/
+.env
+.env.*
+!.env.example
+
+# Testes e caches
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Logs e saídas locais
+logs/
+output/
+*.log
+*.log.*
+
+# Configurações locais e segredos
+config.ini
+*.ini
+*.key
+*.pem
+*.p12
+credentials/
+secrets/
+
+# IDE/editor
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
