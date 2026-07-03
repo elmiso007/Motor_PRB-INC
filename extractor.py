@@ -391,9 +391,20 @@ def _parse_prioridade(valor: Optional[str]) -> str:
     if not valor:
         return "P4"
     valor_strip = valor.strip()
+    if not valor_strip:
+        return "P4"
     if valor_strip.startswith("P"):
         return valor_strip
+    primeiro_digito = ""
+    for caractere in valor_strip:
+        if caractere.isdigit():
+            primeiro_digito = caractere
+            break
+        if primeiro_digito:
+            break
     try:
+        if primeiro_digito:
+            return f"P{int(primeiro_digito)}"
         return f"P{int(valor_strip)}"
     except (ValueError, TypeError):
         log.debug("Prioridade inválida tratada como P4: %r", valor)

@@ -246,6 +246,9 @@ class PainelChangeTeamRow:
     qtd_incs_pre_resolucao: int = 0
     delta_chamados_pct: float = 0.0
     qtd_prbs_novos_pos_resolucao: int = 0
+    # Listas dos identificadores (não só contagens) — para click-through no chart.
+    incs_reincidentes: List[str] = field(default_factory=list)
+    prbs_novos: List[str] = field(default_factory=list)
     # --- Auditoria ---
     snapshot_em: Optional[datetime] = None      # populado pelo orquestrador
 

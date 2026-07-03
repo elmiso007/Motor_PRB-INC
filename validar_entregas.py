@@ -111,7 +111,9 @@ def executar_validacao() -> ExecucaoMotor:
     persistir_execucao(execucao)
 
     # Slack — apenas reincidências detectadas.
-    disparar_alertas_criticos(execucao)
+    # TEMPORÁRIO: desabilitado enquanto refinamos o que mostrar à coordenação.
+    _slack_cfg = config.SlackConfig(habilitado=False)
+    disparar_alertas_criticos(execucao, _slack_cfg)
 
     return execucao
 

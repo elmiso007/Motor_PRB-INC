@@ -390,10 +390,13 @@ def _insert_painel_change_team(
             veredicto, data_resolucao, dias_pos_resolucao,
             qtd_incs_pos_resolucao, qtd_incs_pre_resolucao,
             delta_chamados_pct, qtd_prbs_novos_pos_resolucao,
+            incs_reincidentes, prbs_novos,
             snapshot_em
         )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s)
+                %s, %s, %s, %s, %s, %s, %s,
+                %s::json, %s::json,
+                %s)
     """
     cur.executemany(
         sql,
@@ -405,6 +408,7 @@ def _insert_painel_change_team(
                 r.veredicto, r.data_resolucao, r.dias_pos_resolucao,
                 r.qtd_incs_pos_resolucao, r.qtd_incs_pre_resolucao,
                 r.delta_chamados_pct, r.qtd_prbs_novos_pos_resolucao,
+                _jsonb(r.incs_reincidentes), _jsonb(r.prbs_novos),
                 r.snapshot_em,
             )
             for r in rows

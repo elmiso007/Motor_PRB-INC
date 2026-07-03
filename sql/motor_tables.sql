@@ -461,6 +461,37 @@ COMMENT ON TABLE  lwsa.motor_change_team_painel IS 'Snapshot materializado dos P
 COMMENT ON COLUMN lwsa.motor_change_team_painel.veredicto IS 'NULL para PRBs ainda abertos; REINCIDENCIA/ENTREGA_VALIDADA/INCONCLUSIVO para resolvidos.';
 COMMENT ON COLUMN lwsa.motor_change_team_painel.snapshot_em IS 'Timestamp de quando este snapshot foi gravado — monitora frescor do painel.';
 
+-- ----------------------------------------------------------------------------
+-- ALTER condicional: adicionar listas (INCs reincidentes + PRBs novos)
+-- ----------------------------------------------------------------------------
+-- Requisito da coordenação (2026-06-15): além das CONTAGENS (qtd_incs_pos_resolucao
+-- e qtd_prbs_novos_pos_resolucao), o chart "PRB Change Team" deve exibir os
+-- NÚMEROS reais das INCs/PRBs gerados após resolução, para click-through ao
+-- SNow direto do painel. Listas vivem em colunas JSON (Postgres 9.2 não tem jsonb).
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema='lwsa' AND table_name='motor_change_team_painel'
+          AND column_name='incs_reincidentes'
+    ) THEN
+        ALTER TABLE lwsa.motor_change_team_painel
+            ADD COLUMN incs_reincidentes json NOT NULL DEFAULT '[]'::json;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema='lwsa' AND table_name='motor_change_team_painel'
+          AND column_name='prbs_novos'
+    ) THEN
+        ALTER TABLE lwsa.motor_change_team_painel
+            ADD COLUMN prbs_novos json NOT NULL DEFAULT '[]'::json;
+    END IF;
+END $$;
+
+COMMENT ON COLUMN lwsa.motor_change_team_painel.incs_reincidentes IS 'Array JSON com os números das INCs novas detectadas no mesmo (produto, servidor) após data_resolucao. Vazio se veredicto != REINCIDENCIA. Ex.: ["INC8847001","INC8847002"].';
+COMMENT ON COLUMN lwsa.motor_change_team_painel.prbs_novos IS 'Array JSON com os números dos PRBs novos abertos no mesmo (produto, servidor) após data_resolucao. Sinal grave: problema voltou em outra forma. Ex.: ["PRB0072001"].';
+
 
 -- ----------------------------------------------------------------------------
 -- ALTER condicional: adicionar coluna total_validacoes_entrega em motor_execucao

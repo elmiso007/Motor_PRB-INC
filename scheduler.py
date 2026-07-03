@@ -34,6 +34,7 @@ log = logging.getLogger(__name__)
 def executar_ciclo(
     fonte_inc: FonteIncidentes,
     fonte_chamados: FonteChamados,
+    slack_cfg: config.SlackConfig | None = None,
 ) -> ExecucaoMotor:
     """Executa uma rodada completa do motor.
 
@@ -130,11 +131,15 @@ def executar_ciclo(
         execucao.erros.append(f"dashboard_db: {exc}")
 
     # 5c. Slack (alertas críticos)
-    try:
-        notifier.disparar_alertas_criticos(execucao)
-    except Exception as exc:
-        log.exception("Falha ao disparar Slack: %s", exc)
-        execucao.erros.append(f"slack: {exc}")
+    cfg_slack = slack_cfg or config.SlackConfig()
+    if cfg_slack.configurado:
+        try:
+            notifier.disparar_alertas_criticos(execucao, slack_cfg=cfg_slack)
+        except Exception as exc:
+            log.exception("Falha ao disparar Slack: %s", exc)
+            execucao.erros.append(f"slack: {exc}")
+    else:
+        log.info("Disparo Slack desabilitado pelo main; passo 5c ignorado.")
 
     # Log final mostra ambos (persistido vs. total incluindo Slack).
     duracao_total_ms = int((time_utils.agora_utc() - inicio).total_seconds() * 1000)

@@ -111,7 +111,7 @@ não pegou de verdade.
 
 ### 3️⃣ Olha pra força-tarefa — *"como estão os 84 PRBs prioritários?"*
 
-A Change Team mantém uma lista de **84 PRBs específicos** que precisam
+A Change Team mantém uma lista de **93 PRBs específicos** que precisam
 acompanhamento dedicado. O motor materializa essa lista num painel
 sempre atualizado — quem ainda está aberto, quem foi resolvido, quem
 voltou a dar problema.

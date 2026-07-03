@@ -59,6 +59,10 @@ class TestParsePrioridade:
         ("3", "P3"),
         ("4", "P4"),
         ("5", "P5"),
+        ("1 - Crítica", "P1"),
+        ("2 - Alta", "P2"),
+        ("3 - Média", "P3"),
+        ("4 - Baixa", "P4"),
     ])
     def test_numero_isolado(self, entrada, esperado):
         assert _parse_prioridade(entrada) == esperado

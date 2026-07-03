@@ -336,6 +336,168 @@ _Use o dashboard para ver a linha do tempo completa._
 O motor prepara e **loga** a mensagem mas não envia. Pra ativar:
 `$env:SLACK_HABILITADO = "true"`.
 
+### 8.1 Aba sugerida no dashboard: Saúde do Cliente
+
+Se você quiser transformar esse sinal numa aba separada, eu recomendo uma
+visão de operação e relacionamento, não uma visão técnica. O foco é responder
+rapidamente: *quem está barulhento, por que está barulhento e se piorou agora*.
+
+#### Blocos principais
+
+1. **Cards de topo**
+  - Clientes em alerta hoje
+  - Clientes com 3+ INCs em 6 meses
+  - Total de INCs no período
+  - Total de chamados no período
+  - Severidade média geral
+  - Clientes com INC recente nos últimos 7 dias
+
+2. **Top clientes mais críticos**
+  - Ranking por `qtd_incs_periodo + qtd_chamados_periodo`
+  - Ordenação secundária por `severidade_media`
+  - Exibir `cliente_login`, volume, severidade e flag de alerta
+
+3. **Dispersão volume x severidade**
+  - Eixo X: `qtd_incs_periodo`
+  - Eixo Y: `severidade_media`
+  - Tamanho da bolha: `qtd_chamados_periodo`
+  - Cor: `alerta_recorrencia_alta`
+  - Serve para separar cliente “muito barulhento” de cliente “pouco volume, muita gravidade”
+
+4. **Linha do tempo consolidada por cliente**
+  - Mostra `ServiceNow` + `Chamados` na ordem cronológica reversa
+  - Ideal para detalhar os 5 a 10 clientes mais importantes do dia
+  - Cada evento deve mostrar data, fonte, produto, CI e resumo
+
+5. **Tabela operacional**
+  - `cliente_login`
+  - `qtd_incs_periodo`
+  - `qtd_chamados_periodo`
+  - `severidade_media`
+  - `alerta_recorrencia_alta`
+  - tamanho da linha do tempo
+
+#### Filtros que valem a pena
+
+- período: 7d, 30d, 90d, 6m
+- organização: Locaweb / KingHost
+- produto
+- severidade: baixa, média, alta
+- alerta ativo: sim / não
+- cliente específico
+- equipe/segmento, se o dado existir no banco
+
+#### Regras de leitura
+
+- **Volume alto + severidade alta**: prioridade comercial e suporte juntos
+- **Volume alto + severidade baixa**: cliente ruidoso, monitorar sem pânico
+- **Volume baixo + severidade alta**: caso pontual grave, investigar logo
+- **Sem INC recente**: mostrar no histórico, mas não destacar como alerta
+
+#### Campos que o dashboard já tem na base
+
+Use os campos que o motor já grava em `output/dashboard_state.json` e em
+`lwsa.motor_saude_cliente`:
+
+- `cliente_login`
+- `qtd_incs_periodo`
+- `qtd_chamados_periodo`
+- `severidade_media`
+- `alerta_recorrencia_alta`
+- `linha_do_tempo`
+
+Com isso, a aba sai sem precisar criar uma consulta nova complicada: o motor
+já entrega o dado pronto para visualização.
+
+### 8.2 Como montar a aba no Superset
+
+Se você for criar isso no Superset, a forma mais estável é usar o dataset que
+já vem do Postgres com a tabela `lwsa.motor_saude_cliente` e, para a
+linha do tempo, um drill-down apoiado pelo JSON de `output/dashboard_state.json`.
+
+#### Layout sugerido
+
+**Linha 1 — visão executiva**
+- Card 1: Clientes em alerta hoje
+- Card 2: Total de INCs em 6 meses
+- Card 3: Total de chamados em 6 meses
+- Card 4: Severidade média geral
+
+**Linha 2 — priorização**
+- Gráfico 1: ranking de clientes mais críticos
+- Gráfico 2: dispersão volume x severidade
+
+**Linha 3 — análise operacional**
+- Gráfico 3: evolução semanal de volume de clientes em alerta
+- Gráfico 4: tabela operacional com os clientes mais barulhentos
+
+**Linha 4 — detalhe**
+- Tabela/expandir: linha do tempo consolidada do cliente selecionado
+
+#### Blocos e visualizações
+
+1. **Big Number — Clientes em alerta hoje**
+  - Campo: `COUNT(*)`
+  - Filtro: `alerta_recorrencia_alta = true`
+
+2. **Big Number — Total de INCs**
+  - Campo: `SUM(qtd_incs_periodo)`
+
+3. **Big Number — Total de chamados**
+  - Campo: `SUM(qtd_chamados_periodo)`
+
+4. **Big Number — Severidade média geral**
+  - Campo: `AVG(severidade_media)`
+
+5. **Bar chart — Top clientes mais críticos**
+  - Eixo X: `cliente_login`
+  - Métrica: `qtd_incs_periodo + qtd_chamados_periodo`
+  - Ordenação: maior para menor
+  - Filtro opcional: últimos 30d / 90d / 6m
+
+6. **Scatter plot — Volume x severidade**
+  - Eixo X: `qtd_incs_periodo`
+  - Eixo Y: `severidade_media`
+  - Tamanho: `qtd_chamados_periodo`
+  - Cor: `alerta_recorrencia_alta`
+  - Tooltip: `cliente_login`, `qtd_incs_periodo`, `qtd_chamados_periodo`, `severidade_media`
+
+7. **Time-series — evolução dos clientes em alerta**
+  - Eixo X: data da execução ou snapshot
+  - Métrica: `COUNT(*)` com filtro `alerta_recorrencia_alta = true`
+  - Serve para mostrar se a base está piorando ou melhorando
+
+8. **Table — fila operacional**
+  - Colunas: `cliente_login`, `qtd_incs_periodo`, `qtd_chamados_periodo`, `severidade_media`, `alerta_recorrencia_alta`
+  - Ordenação: `qtd_incs_periodo + qtd_chamados_periodo` desc
+  - Filtro padrão: `alerta_recorrencia_alta = true`
+
+9. **Detail view / drill-down — linha do tempo**
+  - Fonte: `linha_do_tempo` do JSON do dashboard
+  - Mostrar eventos por cliente em ordem reversa
+  - Colunas úteis: data, fonte, tipo, produto, CI, resumo
+
+#### Filtros globais sugeridos
+
+- período: 7d, 30d, 90d, 6m
+- cliente
+- produto
+- alerta ativo
+- severidade mínima
+- organização, se você expuser esse campo no dataset
+
+#### O que eu faria no MVP
+
+Se quiser começar pequeno e útil, monte só estes 4 blocos:
+- Big Number de clientes em alerta
+- Top clientes críticos
+- Scatter volume x severidade
+- Tabela operacional
+
+Depois disso, adicione a linha do tempo como drill-down. Ela costuma ser a
+parte mais valiosa para o coordenador porque responde "por que esse cliente
+apareceu aqui?" sem sair do dashboard.
+
 ---
 
 ## 9. Como interpretar (operacional)

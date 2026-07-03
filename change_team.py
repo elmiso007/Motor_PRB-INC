@@ -136,6 +136,12 @@ def _row_para_painel_resolvido(
         qtd_incs_pre_resolucao=validacao.qtd_incs_pre_resolucao,
         delta_chamados_pct=validacao.delta_chamados_pct,
         qtd_prbs_novos_pos_resolucao=validacao.qtd_prbs_novos_pos_resolucao,
+        # Listas para click-through no chart (req. coordenação 2026-06-15).
+        # incs_reincidentes vem como List[Incidente] — extraímos só o inc_id.
+        incs_reincidentes=[
+            inc.inc_id for inc in validacao.incs_reincidentes if inc.inc_id
+        ],
+        prbs_novos=list(validacao.prbs_novos),
         snapshot_em=snapshot_em,
     )
 

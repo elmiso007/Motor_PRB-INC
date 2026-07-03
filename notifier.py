@@ -288,10 +288,13 @@ def _enviar_via_webhook(texto: str, cfg: config.SlackConfig) -> bool:
 _DELAY_ENTRE_ALERTAS_SEG = 1
 
 
-def disparar_alertas_criticos(execucao: ExecucaoMotor) -> int:
+def disparar_alertas_criticos(
+    execucao: ExecucaoMotor,
+    slack_cfg: config.SlackConfig | None = None,
+) -> int:
     """Envia Slack para todas as prescrições CRITICAS e clientes com recorrência alta.
     Retorna a quantidade efetivamente enviada."""
-    cfg = config.SlackConfig()
+    cfg = slack_cfg or config.SlackConfig()
     enviados = 0
     # Só aplicar delay se ambiente configurado — evita overhead em dev/mock.
     aplicar_delay = cfg.configurado
