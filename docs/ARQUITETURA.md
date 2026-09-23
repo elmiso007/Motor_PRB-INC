@@ -1,13 +1,13 @@
 # Arquitetura — Motor Prescritivo PRB
 
-> **Audiência:** desenvolvedores que vão contribuir com o motor, code reviewers,
-> mantenedores futuros. Para quem **usa** o motor, veja [MANUAL.md](MANUAL.md).
+> **Audiência:** desenvolvedores, revisores de código e mantenedores futuros.
+> Para quem **usa** o motor, veja [MANUAL.md](MANUAL.md).
 > Para as **regras de negócio** (matriz P1-P5), veja [REGRAS.md](REGRAS.md).
 > Para termos técnicos, veja [../GLOSSARIO.md](../GLOSSARIO.md).
 
-Este documento explica **como o motor foi construído e por quê**. Decisões de
-design, padrões adotados, alternativas descartadas. Não é manual de uso — é
-documentação técnica para quem precisa **entender o motor por dentro**.
+Este documento explica **como o motor foi construído e por quê**. Ele cobre decisões
+de design, padrões adotados e alternativas descartadas sem expor detalhes internos
+específicos de uma organização.
 
 ---
 
@@ -16,12 +16,10 @@ documentação técnica para quem precisa **entender o motor por dentro**.
 1. [Visão de uma página](#1-visão-de-uma-página)
 2. [Arquitetura em camadas](#2-arquitetura-em-camadas)
 3. [Fluxo de dados end-to-end](#3-fluxo-de-dados-end-to-end)
-4. [Os 15 módulos abertos](#4-os-15-módulos-abertos)
-5. [Os 7 princípios transversais](#5-os-7-princípios-transversais)
-6. [Decisões importantes (e por quê)](#6-decisões-importantes-e-por-quê)
-7. [Pontos de extensão](#7-pontos-de-extensão)
-8. [Limitações conscientes do MVP](#8-limitações-conscientes-do-mvp)
-9. [Como contribuir sem quebrar](#9-como-contribuir-sem-quebrar)
+4. [Como o projeto é estruturado](#4-como-o-projeto-é-estruturado)
+5. [Pontos de extensão](#5-pontos-de-extensão)
+6. [Limitações conscientes](#6-limitações-conscientes)
+7. [Como contribuir sem quebrar](#7-como-contribuir-sem-quebrar)
 
 ---
 
@@ -31,36 +29,28 @@ documentação técnica para quem precisa **entender o motor por dentro**.
 
 **Prisma preventivo** — a cada 1 hora (Windows Task Scheduler, single-run):
 
-1. **Lê do PostgreSQL:** todas as INCs abertas nas últimas 24h, todos os PRBs
-   ativos, todos os chamados de suporte das últimas 24h (Locaweb + Kinghost).
-2. **Agrupa INCs semanticamente similares** (TF-IDF + DBSCAN do scikit-learn)
-   em "clusters" — problemas que falam do mesmo assunto.
+1. **Lê do PostgreSQL** as últimas INCs e os PRBs ativos.
+2. **Agrupa incidentes semanticamente similares** (TF-IDF + DBSCAN) em clusters.
 3. **Calcula scores** de criticidade e ineficiência para cada cluster.
 4. **Aplica a matriz oficial P1-P5** para classificar cada cluster.
 5. **Sugere ações:** abrir PRB novo, repriorizar PRB existente, monitorar ou
    nada.
-6. **Avalia "Saúde do Cliente":** clientes com ≥3 INCs em 6 meses recebem
-   alerta de recorrência alta + linha do tempo consolidada (ServiceNow +
-   chamados).
-7. **Emite 3 saídas:** JSON em arquivo, persistência em Postgres, alertas
+6. **Avalia saúde do cliente** quando há recorrência de incidentes em um mesmo
+   cliente ou ambiente.
+7. **Emite 3 saídas:** JSON em arquivo, persistência em Postgres e alertas
    críticos no Slack.
 
 ### Para quem o motor existe
 
-- **Time de plantão:** recebe alertas Slack quando há crise (P1) ou padrão
-  preocupante. **Quem age.**
-- **Coordenadores:** acompanham dashboard com clusters, prescrições, saúde de
-  clientes. **Quem prioriza e calibra.**
-- **PO/Liderança:** análise de tendências via SQL no banco. **Quem decide
-  rumos.**
+- **Time de plantão:** recebe alertas de crise ou padrão preocupante.
+- **Coordenadores:** acompanham dashboard com clusters e prescrições.
+- **Líderes/POs:** analisam tendências e ajuste de prioridade.
 
 ### Por que existe
 
-Sem o motor, plantão dependia de **percepção humana** para notar que 5 INCs
-isoladas eram, na verdade, o mesmo problema crescendo. O motor faz essa
-detecção sistematicamente e **antecipa** crises antes que escalem.
-
-Requisito original levantado em reunião com Jéssica, Victor e Bruno.
+Sem o motor, a operação depende de **percepção humana** para detectar que vários
+incidentes isolados na verdade descrevem o mesmo problema. O projeto faz essa
+identificação de forma sistemática e **antecipa** riscos antes que escalem.
 
 ---
 
@@ -97,127 +87,143 @@ O motor é organizado em **4 níveis** de dependência. Imports só vão "para b
 
 **Nível 1 (Fundação)** não importa nada interno — só stdlib. Isso permite:
 - Testar `config.py` ou `models.py` sem instalar nada.
-- Garantir que mudança aqui não cascateia (poucos têm acesso, mas tudo depende).
+- Garantir que mudanças aqui tenham impacto reduzido.
 
-**Nível 2 (Utilitários)** importam só de Nível 1. São funções/classes
-reutilizáveis sem domínio.
+**Nível 2 (Utilitários)** importa somente de Nível 1.
 
-**Nível 3 (Domínio)** é onde mora **a lógica de negócio**. Cada módulo tem
-responsabilidade única e pode importar de Níveis 1 e 2.
+**Nível 3 (Domínio)** concentra a lógica de negócio.
 
-**Nível 4 (Orquestração)** importa quase tudo — papel é juntar as peças.
-
-### Verificação concreta
-
-Você pode verificar a hierarquia com:
-
-```bash
-grep -h "^import\|^from" config.py models.py time_utils.py db.py | grep -v stdlib
-```
-
-Resultado esperado: apenas `import config` (do `time_utils.py`). Nenhum import
-de Nível 3 ou 4 em Níveis 1-2.
+**Nível 4 (Orquestração)** monta a execução e conecta os módulos.
 
 ---
 
 ## 3. Fluxo de dados end-to-end
 
-Trajeto completo dos dados em um ciclo do prisma preventivo (cadência 1h em
-PROD), com volumes reais do mock.
+Trajeto completo dos dados em um ciclo do prisma preventivo.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │  FASE 1: EXTRAÇÃO                                                     │
 └──────────────────────────────────────────────────────────────────────┘
 
-  Postgres (lwsa.service_now_incidentes)
+  Postgres (tabela de incidentes)
         ↓ SELECT WHERE data_abertura >= NOW() - 24h
         ↓
-  91 rows (text cru, BRT naive)
+  N linhas (texto cru)
         ↓
-  extractor._row_para_incidente() × 91
-        ↓ (parsers: data BRT→UTC, prioridade "3"→"P3", etc.)
+  extractor._row_para_incidente() × N
+        ↓ (parsers: data, prioridade, texto, etc.)
         ↓
-  91 objetos Incidente (UTC tz-aware)
+  N objetos Incidente
         ↓
-  + 80 InteracaoChamado (dynamics.chamados + kinghost.chamados)
-  + 2 PRBExistente (lwsa.service_now_problemas, status ativos)
+  + chamados de suporte
+  + PRBs ativos
 
 ┌──────────────────────────────────────────────────────────────────────┐
 │  FASE 2: ANÁLISE                                                      │
 └──────────────────────────────────────────────────────────────────────┘
 
-  91 Incidentes
+  N Incidentes
         ↓
-  analyzer._preparar_textos [normaliza, lowercase, remove acentos via NFKD]
+  analyzer._preparar_textos [normaliza, lowercase, remove acentos]
         ↓
-  91 strings limpas
+  strings limpas
         ↓
-  analyzer._clusterizar [TF-IDF + DBSCAN cosine, eps=0.55]
+  analyzer._clusterizar [TF-IDF + DBSCAN cosine]
         ↓
-  91 labels
-        ↓
-  Agrupa por label, singletons viram clusters próprios
-        ↓
-  5 clusters formados
+  labels por cluster
         ↓
   Para cada cluster:
-    ├─ _score_criticidade (4 componentes ponderados: 0.35+0.30+0.25+0.10)
-    ├─ _score_ineficiencia (0.6 volume + 0.4 velocidade)
-    ├─ detectar_cis_recorrentes (CIs que se repetem em 15 dias)
-    └─ contar chamados Locaweb/Kinghost relacionados (por produto)
+    ├─ _score_criticidade
+    ├─ _score_ineficiencia
+    ├─ detectar_cis_recorrentes
+    └─ correlacionar chamados e contexto
         ↓
-  5 objetos Cluster (ordenados por criticidade DESC)
+  objetos Cluster
 
 ┌──────────────────────────────────────────────────────────────────────┐
 │  FASE 3: REGRAS                                                       │
 └──────────────────────────────────────────────────────────────────────┘
 
-  5 Cluster + 2 PRBExistente
+  Cluster + PRBExistente
         ↓
-  rules_engine.prescrever_lote [defesa por cluster]
+  rules_engine.prescrever_lote
         ↓ Para cada cluster:
         ↓
   ├─ _avaliar_cascata (P1 → P2 → P3 → P4 → P5)
-  │  (primeira regra que casar vence)
-  │
-  ├─ _gatilho_proativo_p3 (≥5 INCs P3 idênticas → promove para P2)
-  │
-  ├─ _sugerir_repriorizacao (match cluster ↔ PRB por produto+servidor)
-  │
+  ├─ _gatilho_proativo_p3
+  ├─ _sugerir_repriorizacao
   └─ _determinar_acao (ABRIR_PRB | REPRIORIZAR_PRB | MONITORAR | NENHUMA)
         ↓
-  5 objetos PrescricaoPRB (com justificativas auditáveis em texto livre)
+  objetos PrescricaoPRB
 
 ┌──────────────────────────────────────────────────────────────────────┐
-│  FASE 4: SAÚDE DO CLIENTE  (bulk + slim — 3 queries totais)           │
+│  FASE 4: SAÚDE DO CLIENTE  (bulk + slim)                              │
 └──────────────────────────────────────────────────────────────────────┘
 
-  fonte_incidentes.contar_clientes_com_inc_recente(30 dias, ("Nominal",))
-        ↓ SQL agregado (GROUP BY login_canonico)
-  ~1.400 clientes Nominais (Integração filtrada no banco)
-        ↓ filtro qtd >= 3
-  ~13 candidatos canônicos (após sql_normalizar_login_cliente)
-
-  ┌─ BULK 1: listar_incidentes_para_saude(candidatos, 6m)
-  │     SQL único: WHERE login_canonico IN (...) AND data_abertura >= ...
-  │     Colunas slim: numero, descricao_curta, prioridade, produto,
-  │     data_abertura, servidor, tem_contorno (pré-computado via regex SQL)
-  │     → Dict[login → List[Incidente]]
-  │
-  └─ BULK 2+3: listar_chamados_para_saude(candidatos, 6m)
-        ├─ 1 query Dynamics (Locaweb)  com login_canonico IN (...)
-        └─ 1 query KingHost            com login_canonico IN (...)
-        → Dict[login → List[InteracaoChamado]]
+  consulta agregada de clientes com recorrência
+        ↓ filtro por volume e janela temporal
+  candidatos relevantes
         ↓
-  Para cada candidato (em memória, sem mais SQL):
-    ├─ _calcular_severidade_media [P1=1.0 ... P5=0.0]
-    ├─ _tem_inc_recente(7 dias) [anti alert-fatigue]
-    └─ _montar_linha_do_tempo [INCs + chamados ordenados cronologicamente]
+  Bulk queries para incidentes e contatos
         ↓
-  13 objetos SaudeCliente (ordenados por volume DESC)
+  consolidação do histórico por cliente
+        ↓
+  objetos SaudeCliente
+```
 
-  Performance medida: ~30s (vs ~80min antes do bulk+slim+índices).
+---
+
+## 4. Como o projeto é estruturado
+
+A organização separa bem as responsabilidades e reduz acoplamento.
+
+```
+main.py                # entry point do ciclo preventivo
+validar_entregas.py    # entry point do ciclo retrospectivo
+scheduler.py           # orquestrador do pipeline
+config.py              # thresholds, regras e env vars
+models.py              # dataclasses e representações
+extractor.py           # leitura das fontes e parsing
+analyzer.py             # clustering semântico
+rules_engine.py        # regras P1-P5 e recomendações
+customer_monitor.py    # avaliação de saúde do cliente
+validador_entrega.py   # validador retrospectivo
+change_team.py         # painel operacional de acompanhamento
+notifier.py            # alertas e dashboard JSON
+notifier_db.py         # persistência PostgreSQL
+time_utils.py          # utils de tempo / timezone
+db.py                  # conexão PostgreSQL
+```
+
+---
+
+## 5. Pontos de extensão
+
+- Trocar a fonte de entrada de incidentes por outra tabela ou API
+- Ajustar thresholds em `config.py`
+- Adicionar novos filtros de priorização ou classificação
+- Alterar o canal de alerta e a saída do dashboard
+- Integrar um painel de métricas ou stream de eventos
+
+---
+
+## 6. Limitações conscientes
+
+- O pipeline depende da qualidade da fonte de dados.
+- O clustering é sensível à normalização textual.
+- A interpretação de indicação de crise ainda requer revisão humana quando o contexto é incompleto.
+- A qualidade do alerta melhora quando há consistência nas entradas de incidentes e contatos.
+
+---
+
+## 7. Como contribuir sem quebrar
+
+1. Mantenha a separação entre domínio, utilitários e orquestração.
+2. Ajuste thresholds em `config.py`, não espalhados pelo código.
+3. Valide mudanças com os testes existentes e com cenários de mock.
+4. prefira o uso de dados sintéticos para validar comportamento antes de tocar fontes reais.
+5. Documente mudanças de regra, limite ou formato de saída.
 
 ┌──────────────────────────────────────────────────────────────────────┐
 │  AGREGAÇÃO                                                            │

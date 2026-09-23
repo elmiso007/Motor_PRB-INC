@@ -1,33 +1,18 @@
-# Painel Change Team — Guia Operacional
+# Painel de Acompanhamento — Guia Operacional
 
-**Versão:** v1.0 (Phase 1, 2026-06-05)
-**Audiência:** força-tarefa Change Team + operador do Motor PRB-INC + DBA/PO
-**Fonte canônica das decisões:** [`.planning/phases/01-painel-change-team-discovery/01-CONTEXT.md`](../.planning/phases/01-painel-change-team-discovery/01-CONTEXT.md) (D-01..D-08)
+**Versão:** v1.0
+**Audiência:** operadores, coordenação e times de suporte
 
 ---
 
 ## 1. Visão Geral
 
-A **Change Team** é uma força-tarefa interdisciplinar da Locaweb dedicada à
-resolução de ~84 PRBs específicos (lista deduplicada da onda inicial de
-2026-06-05 — 8 duplicatas removidas das 92 entries originais).
+Este painel consolida o estado atual de um conjunto de PRBs relevantes para o
+acompanhamento operacional e para a validação de entregas.
 
-O **Painel Change Team** materializa o estado atual desses PRBs num snapshot
-SQL atualizado a cada 6h, consumido via chart **"PRB Change Team"** no
-Superset corporativo.
-
-**Resumo das decisões locked (Phase 1, CONTEXT.md):**
-
-| ID | Decisão | Implementação |
-|---|---|---|
-| D-01 | Lista master em tabela com soft delete | `lwsa.motor_change_team` (ativo + removido_em) |
-| D-02 | Entry-point é o ValidadorEntrega (6h) | `Motor-PRB-Validador.bat` → `validar_entregas.py` |
-| D-03 | Query separada SEM janela temporal | `extractor.listar_prbs_por_numero` |
-| D-04 | TRUNCATE+INSERT atômico | `notifier_db.persistir_painel_change_team` |
-| D-05 | Colunas para PRBs abertos | 9 campos + auditoria em `motor_change_team_painel` |
-| D-06 | Colunas para PRBs resolvidos | D-05 + 7 sinais V3.1 (reusa `_avaliar_prb`, CON-012 LOCKED) |
-| D-07 | Consumo via Superset corporativo (chart manual) | Setup descrito na §3 |
-| D-08 | Feature = `change_team`; Chart = "PRB Change Team" | Aplicado em código, tabela e UI |
+A ideia é materializar o estado desses PRBs em um snapshot SQL atualizado em ciclos
+regulares, permitindo revisão de status, risco e recidiva sem depender de análise
+manual dispersa.
 
 ---
 
@@ -42,124 +27,42 @@ Superset corporativo.
                                      +------------------------------+
                                      | python validar_entregas.py   |
                                      | executar_validacao()         |
-                                     |  ├── V3.1 (CON-012 LOCKED)    |
-                                     |  └── BLOCO Change Team:       |
-                                     |       try/except + lazy import|
+                                     |  ├── V3.1                   |
+                                     |  └── BLOCO Acompanhamento   |
                                      +------------------------------+
                                                     |
                           SELECT WHERE ativo=true   v
 +------------------------------+      +------------------------------+
-| lwsa.motor_change_team       |<-----| change_team.gerar_painel_... |
-| (master — soft delete)       |      +------------------------------+
+| tabela master de PRBs        |<-----| processo de montagem do painel |
+| (soft delete)                |      +------------------------------+
 +------------------------------+                    |
-                                                    v
-                          listar_prbs_por_numero    +----------------+
-+------------------------------+    SEM JANELA      | extractor.py   |
-| lwsa.service_now_problemas   |<-----------------> | (FonteInc)     |
-+------------------------------+                    +----------------+
-                                                    |
                                                     v
                                      +------------------------------+
                                      | TRUNCATE + INSERT atômico    |
-                                     | notifier_db.persistir_painel |
+                                     | persistência do snapshot      |
                                      +------------------------------+
-                                                    |
-                                                    v
-+------------------------------+    SQL nativo     +----------------+
-| lwsa.motor_change_team_painel|<-------------------| Superset chart |
-| (snapshot reescrito a cada   |                   | "PRB Change Team"
-|  ciclo)                      |                   +----------------+
-+------------------------------+
 ```
 
-**Componentes:**
-- **Tabela master:** `lwsa.motor_change_team` — lê com `WHERE ativo = true`. Coluna chave: `numero` (PRB no SNow).
-- **Tabela snapshot:** `lwsa.motor_change_team_painel` — TRUNCATE+INSERT a cada execução do validador. Sem FK pra filhos (tabela folha).
-- **Entry-point:** `validar_entregas.py::executar_validacao` — 3º bloco try/except condicional em `config.CHANGE_TEAM_HABILITADO`.
-- **Toggle:** env var `CHANGE_TEAM_HABILITADO` (default `"true"`). Set `"false"` para desligar sem deploy.
+**Componentes principais:**
+- **Tabela master:** lista rastreada dos PRBs relevantes.
+- **Tabela snapshot:** visão materializada para consumo em dashboard/bot.
+- **Entry-point:** `validar_entregas.py::executar_validacao`.
+- **Toggle:** env var `CHANGE_TEAM_HABILITADO` (default `"true"`).
 
 ---
 
-## 2.5. Pré-requisitos do banco PROD (aprendidos no go-live 2026-06-09)
+## 3. Como usar o painel
 
-Antes de o painel funcionar contra Postgres real, **3 setups são obrigatórios**.
-Sem eles o try/except do Defense in Depth não quebra V3.1, mas o snapshot fica
-vazio (0 rows) indefinidamente.
-
-**1. Versão do Postgres confirmada: 9.2.19** (Locaweb). Compatível com o DO
-block PL/pgSQL do seed (`IF NOT EXISTS (SELECT 1 ...)`). ⚠️ Em 9.2, `COUNT(*)
-FILTER (WHERE ...)` e `ON CONFLICT` NÃO existem — usar `SUM(CASE WHEN ... THEN
-1 ELSE 0 END)`.
-
-**2. Ownership das tabelas:** quem rodar `sql/motor_tables.sql` (geralmente
-via DBeaver com conta admin tipo `a_report`) precisa **transferir ownership
-das 2 tabelas para a conta do motor** (`automatizacoes` na Locaweb), porque
-`TRUNCATE ... RESTART IDENTITY` exige owner da sequência (não basta GRANT).
-
-```sql
-ALTER TABLE lwsa.motor_change_team        OWNER TO automatizacoes;
-ALTER TABLE lwsa.motor_change_team_painel OWNER TO automatizacoes;
-```
-
-A sequence ligada à tabela acompanha o owner automaticamente — não tente
-`ALTER SEQUENCE ... OWNER TO` direto (Postgres bloqueia com "cannot change
-owner of sequence linked to table"). Sintoma se faltar este passo:
-`ERROR: must be owner of relation motor_change_team_painel_id_seq`.
-
-**3. PRBs históricos no espelho SNow:** `lwsa.service_now_problems` na Locaweb
-só replica PRBs recentes. Se a master Change Team referencia PRBs antigos
-(numeração baixa), eles **não aparecem no espelho** → `gerar_painel_change_team`
-loga `WARNING: PRBs Change Team na master mas nao no SNow: [...]` e o painel
-fica subdimensionado. Rodar **backfill** via `projetos/problemas/backfill.py`
-antes do primeiro disparo do validador resolve.
-
-Para diagnosticar quantos da master estão no espelho:
-
-```sql
-SELECT COUNT(*) AS no_snow
-FROM lwsa.service_now_problems p
-JOIN lwsa.motor_change_team m ON m.numero = p.numero
-WHERE m.ativo = true;
-```
-
-Esperado: igual ao `count` da master. Se < master, falta backfill.
-
----
-
-## 3. Como Construir o Chart "PRB Change Team" no Superset
-
-> ⚠️ **Setup manual** — D-07 explicitamente coloca a construção do chart
-> fora do escopo automatizado. Esse passo é executado **uma vez** por quem
-> tem permissão de criar chart no Superset corporativo.
-
-**Passos:**
-
-1. No Superset corporativo, **+ Chart → New Chart**.
-2. **Datasource:** selecionar a conexão Postgres que já aponta para `lwsa.*` (mesma usada pelos outros charts `motor_*`).
-3. **Dataset:** criar novo dataset via SQL Lab apontando para `lwsa.motor_change_team_painel`.
-4. **Tipo de chart:** **Table** (recomendado para o MVP — listagem tabular).
-5. **Colunas a exibir** (ordem visual sugerida):
-
-   ```
-   prb_id, descricao_curta, produto, servidor, status_snow,
-   prioridade_atual, dias_em_aberto, grupo_designado,
-   ultima_atualizacao, veredicto, data_resolucao, dias_pos_resolucao,
-   qtd_incs_pos_resolucao, qtd_incs_pre_resolucao,
-   delta_chamados_pct, qtd_prbs_novos_pos_resolucao, snapshot_em
-   ```
-
-6. **Ordenação default sugerida:**
-   - Abertos primeiro (`veredicto IS NULL DESC`)
-   - Mais antigos visíveis (`dias_em_aberto DESC NULLS LAST`)
-
-7. **Nome do chart:** **"PRB Change Team"** (D-08 LOCKED).
-8. **Dashboard:** salvar em dashboard "Motor PRB" existente ou criar novo "Force-Task Change Team".
+1. O validador executa em intervalos regulares.
+2. A tabela mestre seleciona PRBs ativos.
+3. O snapshot atualiza a visualização operacional.
+4. O dashboard usa esse materialized view para apresentar a situação atual.
 
 ---
 
 ## 4. SQL Canônico
 
-### Query A — Listagem completa (base do chart Table)
+### Query A — Listagem completa
 
 ```sql
 SELECT
@@ -170,32 +73,28 @@ SELECT
     qtd_incs_pos_resolucao, qtd_incs_pre_resolucao,
     delta_chamados_pct, qtd_prbs_novos_pos_resolucao,
     snapshot_em
-FROM lwsa.motor_change_team_painel
+FROM tabela_painel
 ORDER BY (veredicto IS NULL) DESC,
          dias_em_aberto DESC NULLS LAST;
 ```
 
-### Query B — Split aberto vs resolvido (filtros sugeridos para o dashboard)
+### Query B — Split aberto vs resolvido
 
 ```sql
--- Abertos (D-05): sem veredicto, ainda em andamento
+-- Abertos
 SELECT *
-FROM lwsa.motor_change_team_painel
+FROM tabela_painel
 WHERE veredicto IS NULL
 ORDER BY dias_em_aberto DESC NULLS LAST;
 
--- Resolvidos (D-06): com veredicto + sinais pós-resolução
+-- Resolvidos
 SELECT *
-FROM lwsa.motor_change_team_painel
+FROM tabela_painel
 WHERE veredicto IS NOT NULL
 ORDER BY data_resolucao DESC;
 ```
 
 ### Query C — Big Number "X de Y resolvidos"
-
-> ⚠️ Postgres da Locaweb é **9.2.19** — `COUNT(*) FILTER (WHERE ...)` foi
-> introduzido em 9.4 e **dá `ERROR: syntax error at or near "("`** aqui.
-> Usar `SUM(CASE WHEN ... THEN 1 ELSE 0 END)` no lugar.
 
 ```sql
 SELECT
@@ -208,15 +107,27 @@ SELECT
         / NULLIF(COUNT(*), 0),
         1
     ) AS pct_resolvido
-FROM lwsa.motor_change_team_painel;
+FROM tabela_painel;
 ```
 
-Acrescentei `reincidencias` no mesmo big number — é o sinal mais acionável
-operacionalmente (PRBs marcados como resolvidos mas com problema voltando).
-No go-live de 2026-06-09: 6/84 reincidências, sendo PRB0055284 já há 726
-dias pós-resolução.
+---
 
-### Query D — Health check (snapshot fresco?)
+## 5. Considerações de operação
+
+- A execução periódica deve ser controlada por agendamento externo.
+- A tabela snapshot deve se manter consistente com a carga principal.
+- Quaisquer mudanças na regra de avaliação devem ser documentadas e validadas em ambiente de teste.
+- O dashboard deve ser usado como visão operacional, não como único critério de decisão.
+
+---
+
+## 6. Checklist de qualidade
+
+- Validar consulta de origem para PRBs relevantes
+- Validar persistência do snapshot
+- Validar regra de veredicto e recidiva
+- Validar alertas finais e mensagens de notificação
+- Revisar o painel após qualquer ajuste no modelo de priorização
 
 ```sql
 SELECT

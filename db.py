@@ -1,10 +1,9 @@
 # =============================================================================
 # Motor Prescritivo PRB — Helpers de acesso ao PostgreSQL
 # =============================================================================
-# Reproduz a interface usada pelo projeto irmão (locapredict) para reusar o
-# mesmo config.ini compartilhado em projetos/config.ini. Mantemos o módulo
-# auto-suficiente em vez de importar do locapredict — independência > DRY
-# quando o overhead é trivial (60 linhas).
+# Mantém a leitura do config.ini centralizado sem depender de um projeto
+# específico. Esse módulo fica auto-suficiente para permitir uso em qualquer
+# ambiente e evita expor vínculos com repositórios internos.
 # =============================================================================
 from __future__ import annotations
 

@@ -91,7 +91,7 @@ def _montar_linha_do_tempo(
     eventos: List[Dict] = []
     for inc in incs:
         eventos.append({
-            "fonte": "ServiceNow",
+            "fonte": "Sistema de Incidentes",
             "tipo": "INC",
             "id": inc.inc_id,
             "data": inc.abertura.isoformat(),
@@ -103,7 +103,7 @@ def _montar_linha_do_tempo(
         })
     for chamado in chamados:
         eventos.append({
-            "fonte": chamado.organizacao or "Chamado",  # "Locaweb" ou "Kinghost"
+            "fonte": chamado.organizacao or "Chamado",
             "tipo": "Chamado",
             "id": chamado.chamado_id,
             "data": chamado.data.isoformat(),

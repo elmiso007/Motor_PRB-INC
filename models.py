@@ -12,13 +12,13 @@ from typing import Any, Dict, List, Optional
 
 
 # -----------------------------------------------------------------------------
-# Domínio: ServiceNow (lwsa.service_now_incidentes / lwsa.service_now_problemas)
+# Domínio: Sistema de Incidentes (dw_operacional.incidentes_entrada / dw_operacional.problemas_entrada)
 # -----------------------------------------------------------------------------
 @dataclass
 class Incidente:
     """Representação canônica de uma INC do ServiceNow.
 
-    Mapeamento direto da tabela `lwsa.service_now_incidentes`.
+    Mapeamento direto da tabela `dw_operacional.incidentes_entrada`.
     Datas e prioridade são parseadas no extractor (vêm como text no banco).
     """
     inc_id: str                          # numero
@@ -54,7 +54,7 @@ class Incidente:
 class PRBExistente:
     """PRB já aberta — alvo de potencial repriorização.
 
-    Mapeamento direto da tabela `lwsa.service_now_problemas`, filtrada
+    Mapeamento direto da tabela `dw_operacional.problemas_entrada`, filtrada
     por status ativo (config.STATUS_PRB_ATIVOS).
     """
     prb_id: str                          # numero
@@ -80,13 +80,13 @@ class PRBExistente:
 # -----------------------------------------------------------------------------
 @dataclass
 class InteracaoChamado:
-    """Chamado de suporte. A `organizacao` indica de qual tabela veio:
-    'Locaweb' → dynamics.chamados | 'Kinghost' → kinghost.chamados.
+    """Chamado de suporte. A `organizacao` indica de qual tabela veio.
+    Normalmente representa uma organização cliente ou origem de suporte.
     """
     chamado_id: str
     produto: str
     cliente_login: str
-    organizacao: str                     # "Locaweb" | "Kinghost"
+    organizacao: str                     # nome da organização ou origem do chamado
     data: datetime
     assunto: str
     origem: str = "cliente"              # canal/categorização (legado: cliente/analista)

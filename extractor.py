@@ -1,12 +1,13 @@
 # =============================================================================
 # Motor Prescritivo PRB — Extractor (PostgreSQL + Dynamics)
 # =============================================================================
-# Camada de ingestão. Todas as fontes são Postgres no mesmo banco compartilhado
-# com o projeto irmão locapredict:
-#   - INCs:     lwsa.service_now_incidentes
-#   - PRBs:     lwsa.service_now_problemas
-#   - Chamados: dynamics.chamados (Locaweb) e kinghost.chamados (Kinghost),
-#               roteados pela coluna `organizacao` da INC/PRB correspondente.
+# Camada de ingestão. Todas as fontes são Postgres no mesmo banco de dados
+# operacional, com tabelas nominais genéricas para manter a leitura simples e
+# evitar expor nomes de ambiente específicos.
+#   - INCs:     dw_operacional.incidentes_entrada
+#   - PRBs:     dw_operacional.problemas_entrada
+#   - Chamados: tabelas de suporte por organização, roteadas pela coluna
+#               `organizacao` da INC/PRB correspondente.
 #
 # Quando config.USAR_MOCKS=True, as classes Mock devolvem dados sintéticos
 # coerentes com a matriz de regras — útil para validação local sem rede.
@@ -210,10 +211,10 @@ class FonteChamados(ABC):
 def sql_normalizar_login_cliente(coluna: str = "login_cliente") -> str:
     """Fragmento PostgreSQL que devolve um identificador canônico do cliente.
 
-    Port literal do projeto irmão locapredict (guardiao_saude_cliente). Unifica
-    formatos distintos que o ServiceNow/Dynamics/KingHost usam pra mesmo cliente:
+    Unifica formatos distintos que sistemas de suporte e plataformas de cliente
+    usam para identificar o mesmo cliente:
 
-      1. URL com `ficha=NNN` (KingHost intranet) → NNN
+      1. URL com `ficha=NNN` (portal do cliente) → NNN
       2. `(Cód. NNN)` / `(Cod. NNN)` → NNN
       3. Valor só com dígitos → mantém
       4. Outra URL `http(s)://...=NNN` → NNN final
@@ -387,28 +388,38 @@ def _parse_datetime(valor: Any) -> Optional[datetime]:
 
 
 def _parse_prioridade(valor: Optional[str]) -> str:
-    """Aceita '1'..'5' e devolve 'P1'..'P5'. Default 'P4' (baixa) se inválido."""
+    """Normaliza prioridade do DW para o formato P1..P5.
+
+    Casos válidos ficam em P1..P5. Quando a origem traz um valor numérico fora
+    do conjunto oficial (ex.: 99), preserva o código inteiro como P99 em vez de
+    truncar para a primeira casa (P9). Isso mantém a semântica do dado bruto sem
+    mascarar um código de prioridade inválido. Entrada sem dígitos => P4.
+    """
     if not valor:
         return "P4"
     valor_strip = valor.strip()
     if not valor_strip:
         return "P4"
-    if valor_strip.startswith("P"):
-        return valor_strip
-    primeiro_digito = ""
-    for caractere in valor_strip:
-        if caractere.isdigit():
-            primeiro_digito = caractere
-            break
-        if primeiro_digito:
-            break
-    try:
-        if primeiro_digito:
-            return f"P{int(primeiro_digito)}"
-        return f"P{int(valor_strip)}"
-    except (ValueError, TypeError):
+
+    valor_upper = valor_strip.upper()
+    if valor_upper.startswith("P"):
+        return valor_upper
+
+    match = re.search(r"\d+", valor_strip)
+    if not match:
         log.debug("Prioridade inválida tratada como P4: %r", valor)
         return "P4"
+
+    numero = match.group(0)
+    try:
+        valor_int = int(numero)
+    except ValueError:
+        log.debug("Prioridade inválida tratada como P4: %r", valor)
+        return "P4"
+
+    if 1 <= valor_int <= 5:
+        return f"P{valor_int}"
+    return f"P{numero}"
 
 
 def _contar_atualizacoes(valor: Any) -> int:

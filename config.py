@@ -140,24 +140,23 @@ TERMOS_SEM_CONTORNO: List[str] = [
 # -----------------------------------------------------------------------------
 # Credenciais e endpoints (via env vars — nunca commitar segredos)
 # -----------------------------------------------------------------------------
-# Schema/tabelas do data warehouse onde os dumps do ServiceNow são ingeridos.
+# Schema/tabelas do data warehouse onde os dumps do sistema de incidentes são ingeridos.
 # Centralizado aqui para o extractor não ter strings SQL mágicas.
-SCHEMA_BANCO = "lwsa"
-TABELA_INCIDENTES = "service_now_incidentes"
-TABELA_PROBLEMAS = "service_now_problems"
+SCHEMA_BANCO = "dw_operacional"
+TABELA_INCIDENTES = "incidentes_entrada"
+TABELA_PROBLEMAS = "problemas_entrada"
 
-# Filtro de organizações ativas. Restringe INCs/PRBs do ServiceNow e tabelas
-# de chamados às organizações listadas. Tupla vazia = sem filtro (todas as
-# orgs). Hoje o motor está focado em "Locaweb"; pra incluir KingHost, basta
-# acrescentar à tupla:
-#   ORGANIZACOES_ATIVAS = ("Locaweb", "KingHost")
-ORGANIZACOES_ATIVAS: tuple = ("Locaweb",)
+# Filtro de organizações ativas. Restringe INCs/PRBs e tabelas de chamados às
+# organizações listadas. Tupla vazia = sem filtro (todas as orgs). O padrão
+# neutralizado abaixo mantém a estrutura de configuração sem expor nomes
+# internos do ambiente original.
+ORGANIZACOES_ATIVAS: tuple = ("Cliente",)
 
 # Padrões substring (case-insensitive) que devem EXCLUIR INCs do levantamento
 # da Saúde do Cliente. Complementa ORGANIZACOES_ATIVAS para casos onde o DW
-# classifica a INC como 'Locaweb' mas o `login_cliente` indica outra origem
-# (ex.: URL `intranet.kinghost.com.br/.../ficha=NNN`). ILIKE substring.
-LOGIN_CLIENTE_PADROES_EXCLUIDOS: tuple = ("kinghost",)
+# classifica a INC como 'Cliente' mas o `login_cliente` indica outra origem
+# (ex.: URL `portal.exemplo.com/.../ficha=NNN`). ILIKE substring.
+LOGIN_CLIENTE_PADROES_EXCLUIDOS: tuple = ("cliente_secundario",)
 
 # Status que indicam PRB ainda ATIVO (relevante para sugestão de repriorização).
 # INCs não são filtradas por status — o motor olha o fluxo de 24h, não o estado.
@@ -230,12 +229,12 @@ TOP_EQUIPES_IMPACTADAS = 7
 # externo. Esta é a whitelist que mitiga risco de SQL injection na construção
 # dinâmica de SQL.
 TABELAS_CHAMADOS_POR_ORGANIZACAO = {
-    "Locaweb": {
+    "Cliente": {
         "schema": "dynamics",
         "tabela": "chamados",
         "alias": "c",
         "join": {
-            "schema": "lw_octadesk",
+            "schema": "catalogo_produtos",
             "tabela": "classificacoes",
             "alias": "class",
             "chaves": ["nivel1", "nivel2", "nivel3", "nivel4", "nivel5"],
@@ -250,8 +249,8 @@ TABELAS_CHAMADOS_POR_ORGANIZACAO = {
             "qtd_interacoes_cliente": "c.quantidadeinteracoes",
         },
     },
-    "Kinghost": {
-        "schema": "kinghost",
+    "ClienteSecundario": {
+        "schema": "cliente_secundario",
         "tabela": "chamados",
         "alias": None,
         "join": None,
@@ -277,11 +276,11 @@ COLUNAS_OBRIGATORIAS_CHAMADOS = (
 
 @dataclass
 class BancoConfig:
-    """Marcador de configuração do banco. A conexão real é resolvida em db.py
-    via config.ini compartilhado (mesmo do projeto locapredict).
+    """Marcador de configuração do banco.
 
+    A conexão real é resolvida em db.py via config.ini compartilhado.
     Mantém uma propriedade `configurado` para checagens defensivas equivalentes
-    às que existiam no antigo ServiceNowConfig (REST).
+    às que existiam na antiga configuração de integração.
     """
 
     @property

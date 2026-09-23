@@ -1,27 +1,12 @@
 # Manual de Uso — Motor Prescritivo PRB
 
-> **Audiência:** operadores, time de plantão, coordenadores, deploys. Para
-> entender como o motor funciona por dentro, veja [ARQUITETURA.md](ARQUITETURA.md).
+> **Audiência:** operadores, time de plantão, coordenadores e times de suporte.
+> Para entender a lógica de implementação, veja [ARQUITETURA.md](ARQUITETURA.md).
 > Para as regras de negócio, veja [REGRAS.md](REGRAS.md).
 > Para termos técnicos, veja [../GLOSSARIO.md](../GLOSSARIO.md).
 
-Este documento mostra **como usar o motor no dia a dia**. Setup inicial,
-comandos, configuração, troubleshooting, queries SQL úteis.
-
----
-
-## Sumário
-
-1. [Setup inicial](#1-setup-inicial)
-2. [Como rodar o motor](#2-como-rodar-o-motor)
-3. [Variáveis de ambiente](#3-variáveis-de-ambiente)
-4. [Como ler os logs](#4-como-ler-os-logs)
-5. [Como interpretar o dashboard JSON](#5-como-interpretar-o-dashboard-json)
-6. [Como interpretar mensagens Slack](#6-como-interpretar-mensagens-slack)
-7. [Queries SQL úteis](#7-queries-sql-úteis)
-8. [Testes unitários](#8-testes-unitários)
-9. [Troubleshooting](#9-troubleshooting)
-10. [Checklist de deploy em produção](#10-checklist-de-deploy-em-produção)
+Este documento mostra **como usar o motor no dia a dia**: setup inicial, comandos,
+configuração, troubleshooting e consultas SQL úteis.
 
 ---
 
@@ -29,10 +14,9 @@ comandos, configuração, troubleshooting, queries SQL úteis.
 
 ### 1.1 Pré-requisitos
 
-- **Python 3.10+** (testado em 3.13).
-- **Acesso ao PostgreSQL** compartilhado da Locaweb (`lwsa.*`, `dynamics.*`,
-  `kinghost.*`).
-- **`config.ini`** na pasta `projetos/` com a seção `[database]`.
+- **Python 3.10+**
+- **Acesso ao PostgreSQL** do ambiente operacional
+- **`config.ini`** com a seção `[database]` e, quando necessário, as chaves de Slack
 
 Verificar Python:
 ```bash
@@ -46,30 +30,9 @@ cd "Motor PRB-INC"
 pip install -r requirements.txt
 ```
 
-Lista do que será instalado:
+### 1.3 Configurar `config.ini`
 
-| Pacote | Função |
-|---|---|
-| `psycopg2-binary` | Cliente PostgreSQL |
-| `scikit-learn` | TF-IDF + DBSCAN |
-| `requests` | Cliente HTTP (Slack) |
-| `schedule` | Scheduler do loop |
-| `pandas` | DataFrames opcionais |
-| `tzdata` | Timezones (Windows) |
-| `pytest` | Testes (dev) |
-
-### 1.3 Configurar `config.ini` compartilhado
-
-O motor lê o mesmo `config.ini` que o projeto irmão **locapredict**. Localização:
-
-```
-projetos/
-├── config.ini       ← este arquivo
-├── MRP para PRB/locapredict/
-└── Motor PRB-INC/
-```
-
-Formato mínimo de `config.ini`:
+Crie um arquivo `config.ini` na raiz do projeto ou em um diretório compartilhado do ambiente:
 
 ```ini
 [database]
@@ -80,15 +43,19 @@ uid = <usuario>
 pwd = <senha>
 ```
 
-**Importante:** se já está usando o locapredict, o `config.ini` provavelmente
-já existe — basta confirmar.
+Você também pode adicionar uma seção opcional para o Slack:
 
-Sem o `config.ini`, o motor falha em modo real. Pra rodar sem banco use
-`USAR_MOCKS=true` antes do comando (mock activate gera dados sintéticos).
+```ini
+[slack]
+bot_token = xoxb-...
+channels  = C1234567890,U0987654321
+```
+
+Sem o `config.ini`, o motor falha em modo real. Para rodar sem banco, use `USAR_MOCKS=true` antes do comando.
 
 ### 1.4 Executar a DDL no banco (1x)
 
-O motor persiste dados em **7 tabelas** no schema `lwsa`. Criar essas tabelas:
+O motor persiste dados em várias tabelas de controle. Crie a estrutura com o script disponível em `sql/motor_tables.sql`.
 
 **Opção A — via psql:**
 ```bash
@@ -100,60 +67,19 @@ psql -h <host> -U <user> -d <database> -f "Motor PRB-INC/sql/motor_tables.sql"
 2. Abrir o arquivo `Motor PRB-INC/sql/motor_tables.sql`.
 3. Selecionar tudo (`Ctrl+A`) e executar (`Ctrl+Enter`).
 
-Tabelas criadas:
-- `lwsa.motor_execucao` — cabeça (1 linha por ciclo).
-- `lwsa.motor_cluster` — clusters formados.
-- `lwsa.motor_prescricao` — saída do rules_engine.
-- `lwsa.motor_saude_cliente` — avaliações por cliente.
-- `lwsa.motor_validacao_entrega` — ValidadorEntrega V3.1 (24 colunas).
-- `lwsa.motor_validacao_entrega_equipe` — times impactados V3.1 (espelho relacional).
-- `lwsa.motor_change_team` — master da força-tarefa Change Team (soft delete).
-- `lwsa.motor_change_team_painel` — snapshot atômico do Painel Change Team (TRUNCATE+INSERT a cada 6h).
-
-> ⚠️ **Painel Change Team:** depois de criar `motor_change_team` e
-> `motor_change_team_painel` via DBeaver com conta admin (ex.: `a_report`),
-> transferir ownership para a conta do motor (`automatizacoes` na Locaweb).
-> `TRUNCATE ... RESTART IDENTITY` exige owner da sequência — só `GRANT` não basta.
->
-> ```sql
-> ALTER TABLE lwsa.motor_change_team        OWNER TO automatizacoes;
-> ALTER TABLE lwsa.motor_change_team_painel OWNER TO automatizacoes;
-> ```
->
-> Detalhes em [DASHBOARD_CHANGE_TEAM.md §2.5](DASHBOARD_CHANGE_TEAM.md#25-pré-requisitos-do-banco-prod-aprendidos-no-go-live-2026-06-09).
-
 ### 1.5 Permissões de banco necessárias
 
-A conta usada pelo motor precisa de:
+A conta usada pelo motor precisa ter acesso de leitura às fontes e acesso de gravação às tabelas operacionais do projeto.
+
+Exemplo de permissões mínimas:
 
 | Schema/Tabela | Permissões necessárias |
 |---|---|
-| `lwsa.service_now_incidentes` | `SELECT` |
-| `lwsa.service_now_problemas` | `SELECT` |
-| `dynamics.chamados` | `SELECT` |
-| `kinghost.chamados` | `SELECT` |
-| `lw_octadesk.classificacoes` | `SELECT` |
-| `lwsa.motor_*` (8 tabelas, inclui Change Team) | `INSERT, SELECT` (mínimo). `DELETE` se quiser cleanup TTL automático. `TRUNCATE` em `motor_change_team_painel` exige OWNERSHIP (ALTER TABLE OWNER, não basta GRANT). |
-| Sequências `lwsa.motor_*_id_seq` | `USAGE, SELECT` |
-
-**Comando SQL para conceder (executar como admin):**
-
-```sql
--- Substitua <USUARIO> pelo nome da conta do motor
-GRANT INSERT, SELECT ON lwsa.motor_execucao      TO <USUARIO>;
-GRANT INSERT, SELECT ON lwsa.motor_cluster       TO <USUARIO>;
-GRANT INSERT, SELECT ON lwsa.motor_prescricao    TO <USUARIO>;
-GRANT INSERT, SELECT ON lwsa.motor_saude_cliente TO <USUARIO>;
-
-GRANT USAGE, SELECT ON SEQUENCE lwsa.motor_execucao_id_seq      TO <USUARIO>;
-GRANT USAGE, SELECT ON SEQUENCE lwsa.motor_cluster_id_seq       TO <USUARIO>;
-GRANT USAGE, SELECT ON SEQUENCE lwsa.motor_prescricao_id_seq    TO <USUARIO>;
-GRANT USAGE, SELECT ON SEQUENCE lwsa.motor_saude_cliente_id_seq TO <USUARIO>;
-
--- Opcional: DELETE para cleanup TTL automático
-GRANT DELETE ON lwsa.motor_execucao TO <USUARIO>;
--- (ON DELETE CASCADE cuida das filhas)
-```
+| `seu_schema.service_now_incidentes` | `SELECT` |
+| `seu_schema.service_now_problemas` | `SELECT` |
+| `seu_schema.chamados` | `SELECT` |
+| `seu_schema.motor_*` | `INSERT, SELECT` |
+| Sequências de tabelas do motor | `USAGE, SELECT` |
 
 ### 1.6 Verificar setup
 
@@ -163,20 +89,7 @@ Rodar uma execução de teste **em modo mock** (não toca o banco):
 USAR_MOCKS=true python main.py
 ```
 
-Saída esperada (resumo):
-```
-Motor Prescritivo PRB iniciado.
-Modo mocks: True | Intervalo: 15 min
-INCs lidas (24h): 91.
-Chamados (24h): 80.
-Análise concluída: 5 clusters formados.
-Prescrições geradas: 5 (críticas: 1).
-Saude de clientes avaliada: 13.
-Execução única concluída: 5 clusters, 5 prescrições, 13 saúde de clientes.
-```
-
-Se viu isso, **setup está OK**. Agora pode validar com banco real (próximo
-tópico).
+Se o comando executa com sucesso e gera resultados esperados, o setup está OK.
 
 ---
 
@@ -185,14 +98,11 @@ tópico).
 ### 2.1 Execução (single-run)
 
 A aplicação **sempre** roda um único ciclo e encerra. A cadência é controlada
-externamente — em produção, pelo Windows Task Scheduler. Não há mais loop
-interno (removido em 2026-06-05).
+externamente — em produção, pelo Windows Task Scheduler. Não há loop interno.
 
 ```bash
 python main.py
 ```
-
-Exit code: `0` = sucesso, `1` = houve erros (útil pra Task Scheduler/CI).
 
 ### 2.2 Modo mock vs. produção
 
@@ -201,65 +111,144 @@ Exit code: `0` = sucesso, `1` = houve erros (útil pra Task Scheduler/CI).
 | **Produção (default)** | Banco real, alertas reais | Sem env var — apenas `python main.py` |
 | **Mock** | Desenvolvimento, testes, demo, validação local | `$env:USAR_MOCKS = "true"` (PowerShell) ou `USAR_MOCKS=true` (bash) |
 
-**Default mudou em 2026-06-02:** antes era mock por padrão. Hoje é produção
-(`USAR_MOCKS=false`). O `Motor-PRB.bat` também força produção explicitamente.
-
-**Em modo mock:** o motor gera dados sintéticos coerentes (91 INCs, 80 chamados,
-2 PRBs, clientes `cliente001..019`). Não toca o banco real. Útil para validar
-lógica sem ter banco disponível.
-
-**Em modo produção:** lê dos schemas `lwsa.*`, `dynamics.*`, `kinghost.*` reais.
-
 ### 2.3 Agendamento via Windows Task Scheduler (UI)
 
 Padrão recomendado em produção: o Task Scheduler dispara `Motor-PRB.bat` a cada
-**1 hora** (cadência revista em 2026-06-09; antes era 15min). Vantagem: se uma
-execução crashar, a próxima ainda roda intacta — o Task Scheduler faz o papel
-do supervisor. **Em PROD as tasks vivem em** `\TarefasTrafego\` (`Motor PRB-INC`
-e `Motor-PRB-Validador`).
+**1 hora**. A vantagem é que, se uma execução falhar, a próxima ainda roda intacta.
 
-**Pré-requisito:** o wrapper `Motor-PRB.bat` na raiz do projeto. Ele já vem
-com o repositório e contém:
+---
 
-```bat
-@echo off
-setlocal
-set "PROJ=%~dp0"
-set "VENV=C:\Users\emerson.ramos\Desktop\projetos\.venv"
-set "USAR_MOCKS=false"
-cd /d "%PROJ%"
-"%VENV%\Scripts\python.exe" main.py
-endlocal & exit /b %ERRORLEVEL%
+## 3. Variáveis de ambiente
+
+Exemplos de uso:
+
+```bash
+$env:USAR_MOCKS = "true"
+$env:LOG_LEVEL = "DEBUG"
+$env:SLACK_HABILITADO = "false"
 ```
 
-Ajustar `VENV` se o seu virtualenv ficar em outro caminho.
+As principais variáveis são:
 
-**Passo a passo na UI** (`Win+R` → `taskschd.msc` → Enter):
+- `USAR_MOCKS`
+- `PERSISTIR_NO_BANCO`
+- `SLACK_HABILITADO`
+- `SLACK_BOT_TOKEN`
+- `SLACK_CHANNELS`
+- `LOG_LEVEL`
+- `CHANGE_TEAM_HABILITADO`
 
-1. Painel direito → **Criar Tarefa...** (NÃO use "Criar Tarefa Básica" — não
-   tem todas as opções que precisamos).
-2. Aba **Geral:**
-   - Nome: `Motor PRB-INC` (em `\TarefasTrafego\`)
-   - Descrição: `Motor Prescritivo PRB - antecipa PRBs a partir de INCs (cada 1h)`
-   - Marcar **"Executar estando o usuário conectado ou não"** (vai pedir a
-     senha do Windows ao salvar — gravada criptografada no SAM, não em arquivo).
-   - Marcar **"Executar com privilégios mais altos"** (opcional, evita surpresas).
-3. Aba **Disparadores → Novo...**
-   - Iniciar a tarefa: `Em uma agenda`
-   - `Diariamente`, começar hoje em `00:00:00`
-   - **Configurações avançadas:**
-     - Marcar `Repetir a tarefa a cada:` **`1 hora`** (default PROD desde 2026-06-09; antes era `15 minutos`)
-     - Pela duração de: **`Indefinidamente`**
-     - Marcar `Habilitado`
-4. Aba **Ações → Nova...**
-   - Ação: `Iniciar um programa`
-   - Programa/script: `C:\Users\emerson.ramos\Desktop\projetos\Motor PRB-INC\Motor-PRB.bat`
-   - Iniciar em (opcional, mas recomendado): `C:\Users\emerson.ramos\Desktop\projetos\Motor PRB-INC`
-5. Aba **Condições:**
-   - Desmarcar `Iniciar a tarefa somente se o computador estiver conectado à
-     energia CA` (para rodar em bateria também — útil em notebook).
-6. Aba **Configurações:**
-   - Marcar `Executar tarefa o mais cedo possível após perder uma execução
+---
+
+## 4. Como ler os logs
+
+Os logs são escritos em `logs/` e ajudam a validar execução, falhas e alertas.
+
+```bash
+Get-ChildItem logs
+Get-Content logs\main-YYYY-MM-DD.log -Tail 60
+```
+
+Procure por:
+
+- `Motor Prescritivo PRB iniciado`
+- `Clusters formados`
+- `Prescrições geradas`
+- `Erro` ou `Exception`
+
+---
+
+## 5. Como interpretar o dashboard JSON
+
+O arquivo `output/dashboard_state.json` deve refletir o último ciclo executado.
+
+Campos úteis:
+
+- `clusters` — lista de clusters detectados
+- `prescricoes` — recomendações do rules engine
+- `saude_clientes` — alertas de recorrência
+- `execucao` — metadados e timestamp da execução
+
+---
+
+## 6. Como interpretar mensagens Slack
+
+Mensagens de alerta devem identificar:
+
+- severidade
+- cluster ou problema
+- contexto de risco
+- ação sugerida
+
+Se `SLACK_HABILITADO=false`, o sistema pode registrar a mensagem mas não enviá-la.
+
+---
+
+## 7. Queries SQL úteis
+
+Exemplo de consulta de leitura do último ciclo:
+
+```sql
+SELECT *
+FROM motor_execucao
+ORDER BY id DESC
+LIMIT 20;
+```
+
+Exemplo de verificação de clusters gerados:
+
+```sql
+SELECT *
+FROM motor_cluster
+ORDER BY id DESC
+LIMIT 20;
+```
+
+---
+
+## 8. Testes unitários
+
+```bash
+python -m pytest tests/ -v
+```
+
+Use esse comando para validar correções e mudanças de regra antes de liberar em produção.
+
+---
+
+## 9. Troubleshooting
+
+### O motor não inicia
+
+- confira se o Python 3.10+ está ativo;
+- confira se `requirements.txt` foi instalado;
+- confira o `config.ini` e as variáveis de ambiente.
+
+### O banco não responde
+
+- teste a conexão via cliente PostgreSQL;
+- confirme as credenciais do `config.ini`;
+- confirme permissões de leitura/escrita nas tabelas do projeto.
+
+### O dashboard está vazio
+
+- verifique se a execução terminou com sucesso;
+- confirme o diretório de saída `output/`;
+- veja os logs do ciclo.
+
+---
+
+## 10. Checklist de deploy em produção
+
+- [ ] validar `config.ini`
+- [ ] validar permissões do banco
+- [ ] confirmar `requirements.txt`
+- [ ] confirmar `USAR_MOCKS=false` em produção
+- [ ] rodar um teste em mock
+- [ ] rodar a aplicação em um ciclo real
+- [ ] validar saída do dashboard
+- [ ] confirmar logs e alertas
+
      agendada`.
    - Marcar `Se a tarefa falhar, reiniciar a cada:` **`5 minutos`** / tentar
      **`3`** vezes (retry automático).

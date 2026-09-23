@@ -1,17 +1,17 @@
 # Motor Prescritivo PRB-INC
 
-Motor de análise automatizada de incidentes e recomendação de Problems para a infraestrutura Locaweb/KingHost. Detecta agrupamentos de incidentes (INCs) semanticamente relacionados, aplica a matriz de prioridade P1-P5 e prescreve ações antes que situações se tornem crises.
+Projeto em Python para análise automatizada de incidentes e recomendação de ações operacionais. O motor agrupa incidentes semanticamente relacionados, aplica uma matriz de prioridade e sugere se vale abrir, repriorizar, monitorar ou acompanhar um problema.
 
 ## O que faz
 
-Sem este motor, o time de plantão precisaria notar manualmente que 5 incidentes isolados são, na verdade, o mesmo problema crescendo. O motor sistematiza essa detecção e antecipa crises em dois ciclos independentes:
+Sem este motor, uma equipe de operação precisaria detectar manualmente que vários incidentes isolados apontam para a mesma causa raiz. O projeto sistematiza essa detecção e antecipa riscos em dois ciclos independentes:
 
 | Prisma | Frequência | Entrada | Saída |
 |---|---|---|---|
-| **Preventivo** | A cada 1h | INCs das últimas 24h | Recomendação de abrir/repriorizar PRB ou monitorar |
+| **Preventivo** | A cada hora | INCs das últimas 24h | Recomendação de abrir, repriorizar ou monitorar |
 | **Retrospectivo** | A cada 6h | PRBs encerrados nos últimos 14 dias | Veredicto de recidiva ou entrega validada |
 
-O **Painel Change Team** (subproduto do ciclo retrospectivo) mantém um snapshot materializado de ~84 PRBs de uma força-tarefa específica, consumido pelo Superset/BI.
+O projeto também gera um painel operacional resumido para acompanhamento de PRBs e métricas de desempenho.
 
 ## Arquitetura resumida
 
@@ -31,13 +31,13 @@ Utilitários   →  time_utils, db
 Fundação      →  config, models
 ```
 
-- **Dados de entrada:** ServiceNow (`lwsa.service_now_incidentes`, `lwsa.service_now_problemas`) + chamados de suporte (`dynamics.chamados`, `kinghost.chamados`)
-- **Persistência de saída:** 8 tabelas `lwsa.motor_*` + `output/dashboard_state.json`
+- **Dados de entrada:** incidentes e problemas de fontes internas do ambiente operacional
+- **Persistência de saída:** tabelas de controle e dashboard em JSON
 - **Notificações:** Slack via Bot Token API
 
 ## Tecnologias
 
-- **Python 3.10+** — todo o código está em português (convenção intencional)
+- **Python 3.10+** — código organizado em módulos com convenção em português
 - **scikit-learn** — TF-IDF + DBSCAN para clustering semântico
 - **psycopg2** — acesso ao data warehouse PostgreSQL
 - **slack_sdk** — alertas via Slack Bot Token
@@ -46,8 +46,8 @@ Fundação      →  config, models
 ## Pré-requisitos
 
 - Python 3.10+
-- Acesso ao data warehouse PostgreSQL da Locaweb
-- Arquivo `config.ini` com credenciais (veja [Configuração](#configuração))
+- Acesso ao PostgreSQL do ambiente operacional
+- Arquivo `config.ini` com credenciais e ajuste de ambiente
 
 ## Instalação
 
@@ -62,13 +62,13 @@ pip install -r requirements.txt
 -- 1. Cria as tabelas de persistência
 \i sql/motor_tables.sql
 
--- 2. Popula a lista do Change Team (~84 PRBs)
+-- 2. Popula a lista do Change Team, quando aplicável
 \i sql/seed_change_team.sql
 ```
 
 ## Configuração
 
-Crie o arquivo `config.ini` em `../config.ini` (compartilhado com o locapredict) ou `./config.ini`:
+Crie um arquivo `config.ini` na raiz do projeto ou em um diretório compartilhado do ambiente:
 
 ```ini
 [database]
@@ -80,7 +80,7 @@ pwd      = <senha>
 
 [slack]
 bot_token = xoxb-...
-channels  = C08C34VKB5Y,U06V8A8GF5L
+channels  = C1234567890,U0987654321
 ```
 
 ### Variáveis de ambiente
@@ -95,7 +95,7 @@ channels  = C08C34VKB5Y,U06V8A8GF5L
 | `CLEANUP_TTL_HABILITADO` | `false` | Auto-purga execuções antigas |
 | `JANELA_TTL_BANCO_DIAS` | `30` | Dias de retenção no banco |
 | `LOG_LEVEL` | `INFO` | Nível de log |
-| `CHANGE_TEAM_HABILITADO` | `true` | Habilita painel Change Team |
+| `CHANGE_TEAM_HABILITADO` | `true` | Habilita painel de acompanhamento |
 
 ## Execução
 
@@ -125,9 +125,7 @@ python validar_entregas.py  # Prisma retrospectivo (roda uma vez e sai)
 python -m pytest tests/ -v
 ```
 
-~116 testes, todos em memória (sem banco), executam em menos de 1 segundo.
-
-Cobertura: parsing do extractor, scoring do analyzer, matriz P1-P5 do rules_engine, queries bulk do customer_monitor, validador retrospectivo V3.1 e Change Team Phase 1.
+Os testes cobrem parsing do extractor, scoring do analyzer, matriz P1-P5 do rules_engine e validadores operacionais em memória.
 
 ## Estrutura do projeto
 
@@ -143,17 +141,17 @@ Motor PRB-INC/
 ├── rules_engine.py          # Motor de regras P1-P5
 ├── customer_monitor.py      # Avaliação de saúde do cliente
 ├── validador_entrega.py     # Validador retrospectivo de entregas
-├── change_team.py           # Snapshot do Painel Change Team
+├── change_team.py           # Snapshot do painel operacional
 ├── notifier.py              # Alertas Slack + JSON dashboard
-├── notifier_db.py           # Persistência PostgreSQL (lwsa.motor_*)
+├── notifier_db.py           # Persistência PostgreSQL
 ├── time_utils.py            # Helpers UTC/BRT
 ├── db.py                    # Gerenciador de conexão PostgreSQL
 ├── requirements.txt
 ├── Motor-PRB.bat            # Wrapper do Task Scheduler (preventivo)
 ├── Motor-PRB-Validador.bat  # Wrapper do Task Scheduler (retrospectivo)
 ├── sql/                     # DDL e seeds do banco
-├── tests/                   # Testes unitários (~116)
-├── output/                  # JSON de saída (dashboard_state.json)
+├── tests/                   # Testes unitários
+├── output/                  # JSON de saída do dashboard
 ├── logs/                    # Logs com rotação diária
 └── docs/                    # Documentação detalhada
 ```
@@ -167,5 +165,5 @@ Motor PRB-INC/
 | [docs/REGRAS.md](docs/REGRAS.md) | Matriz de prioridade P1-P5 completa |
 | [docs/SAUDE_DO_CLIENTE.md](docs/SAUDE_DO_CLIENTE.md) | Processo de avaliação de saúde do cliente |
 | [docs/VALIDADOR_ENTREGA.md](docs/VALIDADOR_ENTREGA.md) | Validador retrospectivo V3.1 |
-| [docs/DASHBOARD_CHANGE_TEAM.md](docs/DASHBOARD_CHANGE_TEAM.md) | Guia operacional do Painel Change Team |
-| [GLOSSARIO.md](GLOSSARIO.md) | Termos ITSM/ITIL, SNow/Dynamics, motor, ML/NLP e Locaweb |
+| [docs/DASHBOARD_CHANGE_TEAM.md](docs/DASHBOARD_CHANGE_TEAM.md) | Guia operacional do painel de acompanhamento |
+| [GLOSSARIO.md](GLOSSARIO.md) | Termos ITSM/ITIL, SNow, Dynamics, motor e ML/NLP |

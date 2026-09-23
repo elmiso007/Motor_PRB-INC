@@ -1,16 +1,16 @@
 # Motor Prescritivo PRB — dependências mínimas
 # Instalar com: pip install -r requirements.txt
 
-# Cliente PostgreSQL (data warehouse lwsa + persistência motor_*)
+# Cliente PostgreSQL (data warehouse operacional + persistência motor_*)
 psycopg2-binary>=2.9.0
 
 # Clusterização semântica (TF-IDF + DBSCAN)
 scikit-learn>=1.3.0
 
-# Cliente HTTP para ServiceNow / Slack (webhook legado)
+# Cliente HTTP para integração / Slack (webhook legado)
 requests>=2.31.0
 
-# Cliente Slack Bot Token API (chat.postMessage, igual locapredict)
+# Cliente Slack Bot Token API (chat.postMessage)
 slack_sdk>=3.0.0
 
 # Scheduler leve (alternativa: APScheduler ou cron do sistema)
