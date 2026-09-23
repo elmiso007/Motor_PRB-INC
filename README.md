@@ -82,7 +82,7 @@ pwd      = <senha>
 
 [slack]
 bot_token = xoxb-...
-channels  = C1234567890,U0987654321
+channels  = SEU_CANAL_ALERTA,SEU_USUARIO_ALERTA
 ```
 
 ### Variáveis de ambiente

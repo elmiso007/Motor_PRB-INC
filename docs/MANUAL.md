@@ -48,7 +48,7 @@ Você também pode adicionar uma seção opcional para o Slack:
 ```ini
 [slack]
 bot_token = xoxb-...
-channels  = C1234567890,U0987654321
+channels  = SEU_CANAL_ALERTA,SEU_USUARIO_ALERTA
 ```
 
 Sem o `config.ini`, o motor falha em modo real. Para rodar sem banco, use `USAR_MOCKS=true` antes do comando.
