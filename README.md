@@ -1,5 +1,7 @@
 # Motor Prescritivo PRB-INC
 
+> Nota de diferenciação: este repositório é o projeto Motor Prescritivo PRB-INC, com foco em incidentes, clusterização e recomendações operacionais. Ele é diferente do projeto InsightFlow / Análise de Conversas e ROBO, que enfoca NPS, conversas e análise de detratores WOZ.
+
 Projeto em Python para análise automatizada de incidentes e recomendação de ações operacionais. O motor agrupa incidentes semanticamente relacionados, aplica uma matriz de prioridade e sugere se vale abrir, repriorizar, monitorar ou acompanhar um problema.
 
 ## O que faz

@@ -66,8 +66,8 @@ def main() -> int:
     log.info("Modo mocks: %s | Logs em %s", config.USAR_MOCKS, config.LOG_DIR)
 
     # Slack — escolha uma das opções abaixo:
-    # slack_cfg = config.SlackConfig(channels=["C07NSPQ69TL"])  # canal de teste
-    slack_cfg = config.SlackConfig(channels=["C08C34VKB5Y", "U06V8A8GF5L"])  # canal oficial
+    # slack_cfg = config.SlackConfig(channels=["SEU_CANAL_TESTE"])  # exemplo local
+    slack_cfg = config.SlackConfig(channels=["SEU_CANAL_ALERTA"])  # ajuste no ambiente
     # slack_cfg = config.SlackConfig(habilitado=False)  # desabilitado
     log.info("Disparo Slack habilitado: %s", slack_cfg.configurado)
 

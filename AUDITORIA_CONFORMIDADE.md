@@ -337,7 +337,7 @@ except Exception as exc:
 ### Implementado em `main.py` + `notifier.py`
 
 ```python
-slack_cfg = config.SlackConfig(channels=["C08C34VKB5Y", "U06V8A8GF5L"])
+slack_cfg = config.SlackConfig(channels=["SEU_CANAL_ALERTA"])
 log.info("Disparo Slack habilitado: %s", slack_cfg.configurado)
 
 # Posterior em notifier.py:
